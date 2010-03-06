@@ -5,16 +5,6 @@ Parts:
 
 Workflow:
 - Publisher:
-  - hmm - archive to specific build directory? Have a separate setting for how many archived builds to keep?
-  - Archive workspace to temp file.
-  - Fingerprint.
-  - Delete file showing which build we've got archived
-  - Move temp workspace archive into live position
-  - Add file showing build number archived.
-  - Save in consistent location, regardless of project type.
-  - Remove marker file.
-  - Add an action to the build
-
   - retention:
      - after having archived and added an action to build etc
      - Check retention policy for project
