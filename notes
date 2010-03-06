@@ -1,0 +1,44 @@
+Parts:
+
+- Publisher
+- SCM
+
+Workflow:
+- Publisher:
+  - hmm - archive to specific build directory? Have a separate setting for how many archived builds to keep?
+  - Archive workspace to temp file.
+  - Fingerprint.
+  - Delete file showing which build we've got archived
+  - Move temp workspace archive into live position
+  - Add file showing build number archived.
+  - Save in consistent location, regardless of project type.
+  - Remove marker file.
+  - Add an action to the build
+
+  - retention:
+     - after having archived and added an action to build etc
+     - Check retention policy for project
+     - If retention policy is anything but "keep everything", apply it.
+
+  - config:
+    - Retain:
+      - For all builds
+      - For most recent completed build (with threshold options for successful, >=unstable, >=failed as well)
+      - For X most recent builds
+      - For X most recent completed build (w/ threshold)
+
+- SCM:
+  - polling:
+      - Retain build number of previous parent build for comparison
+      - Go to parent project
+      - Get most recent completed build
+        - Check for archive action
+        - If archive action found and current build is > previous parent build, polling returns true.
+        - If no archive action is found and current build is > previous parent build, recurse on next most recent completed build.
+        - else return false
+  - Config options:
+     - Parent project (from list of projects with publisher enabled)
+  - getLastCompletedBuild for parent project - how do you verify that it has the archive? Ah-ha - an action! now to understand how actions work...
+  - to get changeset -
+    - Copy changelog.xml from original build
+    - createChangeLogParser() returns parentProject.getSCM().createChangeLogParser() and tada!
