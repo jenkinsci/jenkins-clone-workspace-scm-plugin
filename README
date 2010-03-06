@@ -1,0 +1,2 @@
+Work in progress on an SCM plugin for Hudson to clone the workspace
+and changelog of a build of another project.
