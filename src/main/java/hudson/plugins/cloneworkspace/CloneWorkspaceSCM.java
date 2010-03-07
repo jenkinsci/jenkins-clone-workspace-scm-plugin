@@ -1,0 +1,350 @@
+/*
+ * The MIT License
+ * 
+ * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi, Andrew Bayer
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+package hudson.plugins.cloneworkspace;
+
+import hudson.scm.PollingResult;
+import hudson.scm.SCM;
+import hudson.scm.ChangeLogParser;
+import hudson.scm.SCMDescriptor;
+import hudson.scm.SCMRevisionState;
+import static hudson.scm.PollingResult.BUILD_NOW;
+import static hudson.scm.PollingResult.NO_CHANGES;
+import hudson.model.AbstractProject;
+import hudson.model.Descriptor;
+import hudson.model.TaskListener;
+import hudson.model.AbstractBuild;
+import hudson.model.BuildListener;
+import hudson.model.Hudson;
+import hudson.model.Result;
+import hudson.model.PermalinkProjectAction.Permalink;
+import hudson.Launcher;
+import hudson.FilePath;
+import hudson.WorkspaceSnapshot;
+import hudson.PermalinkList;
+
+import java.io.IOException;
+import java.io.File;
+import java.io.Serializable;
+import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import net.sf.json.JSONObject;
+
+import org.kohsuke.stapler.DataBoundConstructor;
+
+/**
+ * {@link SCM} that inherits the workspace from another build through {@link WorkspaceSnapshot}
+ * Derived from {@link WorkspaceSnapshotSCM}.
+ *
+ * @author Kohsuke Kawaguchi
+ * @author Andrew Bayer
+ */
+public class CloneWorkspaceSCM extends SCM {
+    /**
+     * The job name from which we inherit the workspace.
+     */
+    public String parentJobName;
+    
+    /**
+     * The criteria by which to choose the build to inherit from.
+     * Can be "Any" (meaning most recent completed build), "Successful" (meaning most recent unstable/stable build),
+     * or "Stable" (meaning most recent stable build).
+     */
+    public String criteria;
+
+    @DataBoundConstructor
+    public CloneWorkspaceSCM(String parentJobName, String criteria) {
+        this.parentJobName = parentJobName;
+        this.criteria = criteria;
+    }
+
+    /**
+     * {@link Exception} indicating that the resolution of the job/build failed.
+     */
+    private final class ResolvedFailedException extends Exception {
+        private ResolvedFailedException(String message) {
+            super(message);
+        }
+    }
+
+    private static class Snapshot {
+        final WorkspaceSnapshot snapshot;
+        final AbstractBuild<?,?> parent;
+
+        private Snapshot(WorkspaceSnapshot snapshot, AbstractBuild<?,?> parent) {
+            this.snapshot = snapshot;
+            this.parent = parent;
+        }
+
+        void restoreTo(FilePath dst,TaskListener listener) throws IOException, InterruptedException {
+            snapshot.restoreTo(parent,dst,listener);
+        }
+
+        AbstractBuild<?,?> getParent() {
+            return parent;
+        }
+    }
+    
+    /**
+     * Obtains the {@link WorkspaceSnapshot} object that this {@link SCM} points to,
+     * or throws {@link ResolvedFailedException} upon failing.
+     *
+     * @return never null.
+     */
+    public Snapshot resolve() throws ResolvedFailedException {
+        Hudson h = Hudson.getInstance();
+        AbstractProject<?,?> job = h.getItemByFullName(parentJobName, AbstractProject.class);
+        if(job==null) {
+            if(h.getItemByFullName(parentJobName)==null) {
+                AbstractProject nearest = AbstractProject.findNearest(parentJobName);
+                throw new ResolvedFailedException(Messages.CloneWorkspaceSCM_NoSuchJob(parentJobName,nearest.getFullName()));
+            } else
+                throw new ResolvedFailedException(Messages.CloneWorkspaceSCM_IncorrectJobType(parentJobName));
+        }
+
+        
+        AbstractBuild<?,?> b = getMostRecentBuildForCriteria(job);
+        
+        if(b==null)
+            throw new ResolvedFailedException(Messages.CloneWorkspaceSCM_NoBuild(criteria,parentJobName));
+
+        WorkspaceSnapshot snapshot = b.getAction(WorkspaceSnapshot.class);
+        if(snapshot==null)
+            throw new ResolvedFailedException(Messages.CloneWorkspaceSCM_NoWorkspace(parentJobName,criteria));
+
+        return new Snapshot(snapshot,b);
+    }
+
+    protected PollingResult compareRemoteRevisionWith(AbstractProject project, Launcher launcher, FilePath workspace, TaskListener listener, SCMRevisionState baseline) throws IOException, InterruptedException {
+        return PollingResult.NO_CHANGES;
+    }
+
+    @Override
+    public boolean checkout(AbstractBuild build, Launcher launcher, FilePath workspace, BuildListener listener, File changelogFile) throws IOException, InterruptedException {
+        try {
+            resolve().restoreTo(workspace,listener);
+            // write out the parent build number file
+            PrintWriter w = new PrintWriter(new FileOutputStream(getParentBuildFile(build)));
+            try {
+                w.println(resolve().getParent().getNumber());
+            } finally {
+                w.close();
+            }
+            
+            return calcChangeLog(resolve().getParent(), changeLogFile, listener);
+        } catch (ResolvedFailedException e) {
+            listener.error(e.getMessage()); // stack trace is meaningless
+            build.setResult(Result.FAILURE);
+            return false;
+        }
+    }
+
+    /**
+     * Called after checkout has finished to copy the changelog from the parent build.
+     */
+    private boolean calcChangeLog(AbstractBuild<?,?> parentBuild, File changelogFile, BuildListener listener) throws IOException, InterruptedException {
+        FilePath parentChangeLog = new FilePath(new File(parentBuild.getRootDir(), "changelog.xml"));
+        if (parentChangeLogFile.exists()) {
+            FilePath childChangeLog = new FilePath(changeLogFile);
+            parentChangeLog.copyTo(childChangeLog);
+        }
+        else {
+            createEmptyChangeLog(changelogFile, listener, "log");
+        }
+        return true;
+    }
+
+    @Override
+    public ChangeLogParser createChangeLogParser() {
+        return resolve().getParent().getProject().getSCM().createChangeLogParser();
+    }
+
+    @Override
+    public DescriptorImpl getDescriptor() {
+        return (DescriptorImpl)super.getDescriptor();
+    }
+
+    public static File getParentBuildFile(AbstractBuild b) {
+        return new File(b.getRootDir(),"cloneWorkspaceParent.txt");
+    }
+
+    
+    /**
+     * Reads the parent build file of the specified build (or the closest, if the flag is so specified.)
+     *
+     * @param findClosest
+     *      If true, this method will go back the build history until it finds a parent build file.
+     *      A build may not have a parent build file for any number of reasons (such as failure, interruption, etc.)
+     * @return
+     *      Number of parent build
+     */
+    private int parseParentBuildFile(AbstractBuild<?,?> build, boolean findClosest) throws IOException {
+        int parentBuildNumber = 0; // Default to 0, so that if we don't actually find a build,
+                                   // polling et al will return true.
+
+        // If the build itself is null, just return the default.
+        if (build==null)
+            return parentBuildNumber;
+            
+        if (findClosest) {
+            for (AbstractBuild<?,?> b=build; b!=null; b=b.getPreviousBuild()) {
+                if(getParentBuildFile(b).exists()) {
+                    build = b;
+                    break;
+                }
+            }
+        }
+        
+        {// read the parent build file of the build
+            File file = getParentBuildFile(build);
+            if(!file.exists())
+                // nothing to compare against
+                return parentBuildNumber;
+
+            BufferedReader br = new BufferedReader(new FileReader(file));
+            try {
+                String line;
+                while((line=br.readLine())!=null) {
+                    try {
+                        parentBuildNumber = Integer.parseInt(line);
+                    } catch (NumberFormatException e) {
+                        // perhaps a corrupted line. ignore
+                    }
+                }
+            } finally {
+                br.close();
+            }
+        }
+
+        return parentBuildNumber;
+    }
+
+    @Override
+    public SCMRevisionState calcRevisionsFromBuild(AbstractBuild<?, ?> build, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
+        // exclude locations that are svn:external-ed with a fixed revision.
+        int parentBuildNumber = parseParentBuildFile(build,true);
+
+        return new CloneWorkspaceSCMRevisionState(parentBuildNumber);
+    }
+
+    @Override
+    protected PollingResult compareRemoteRevisionWith(AbstractProject<?,?> project, Launcher launcher, FilePath workspace, final TaskListener listener, SCMRevisionState _baseline) throws IOException, InterruptedException {
+        Hudson h = Hudson.getInstance();
+        AbstractProject<?,?> parentProject = h.getItemByFullName(parentJobName, AbstractProject.class);
+        if (parentProject==null) {
+            // Disable this project if the parent project no longer exists or doesn't exist in the first place.
+            listener.getLogger().println("The CloneWorkspace parent project for " + project + " does not exist, project will be disabled."); 
+            project.makeDisabled(true);
+            return NO_CHANGES;
+        }
+
+        final CloneWorkspaceSCMRevisionState baseline = (CloneWorkspaceSCMRevisionState)_baseline;
+
+        Snapshot s = null;
+        try {
+            s = resolve();
+        } catch (ResolvedFailedException e) {
+            listener.getLogger().println(e.getMessage());
+            return NO_CHANGES;
+        }
+        if (s==null) {
+            listener.getLogger().println("Snapshot failed to resolve for unknown reasons.");
+            return NO_CHANGES;
+        }
+        else {
+            if (s.getParent().getNumber() > baseline.parentBuildNumber) {
+                listener.getLogger().println("Build #" + s.getParent().getNumber() + " of project " + parentJobName
+                                             + " is newer than build #" + baseline.parentBuildNumber + ", so a new build of "
+                                             + project + " will be run.");
+                return BUILD_NOW;
+            }
+            else {
+                listener.getLogger().println("Build #" + s.getParent().getNumber() + " of project " + parentJobName
+                                             + " is NOT newer than build #" + baseline.parentBuildNumber + ", so no new build of "
+                                             + project + " will be run.");
+                return NO_CHANGES;
+            }
+        }
+        
+
+        // If we somehow got down to here, no build.
+        return NO_CHANGES;
+    }
+
+    private AbstractBuild<?,?> getMostRecentBuildForCriteria(AbstractProject project) {
+        AbstractBuild<?,?> b = getLastBuild();
+
+        Result criteriaResult = Result.FAILURE;
+
+        if (criteria.equals("Successful")) {
+            criteriaResult = Result.UNSTABLE;
+        }
+        else if (criteria.equals("Stable")) {
+            criteriaResult = Result.STABLE;
+        }
+        
+        while (b != null
+               && (b.isBuilding() || b.getResult() == null
+                   || b.getResult().isWorseThan(criteriaResult)))
+            b = b.getPreviousBuild();
+
+        return b;
+    }
+
+    @Extension
+    public static class DescriptorImpl extends SCMDescriptor<CloneWorkspaceSCM> {
+        public DescriptorImpl() {
+            super(CloneWorkspaceSCM.class, null);
+            load();
+        }
+
+        @Override
+        public String getDisplayName() {
+            return "Clone Workspace";
+        }
+
+        
+        @Override
+        public SCM newInstance(StaplerRequest req, JSONObject formData) throws FormException {
+            return req.bindJSON(CloneWorkspaceSCM.class, formData);
+        }
+
+    }
+
+    public final class CloneWorkspaceSCMRevisionState extends SCMRevisionState implements Serializable {
+
+        final int parentBuildNumber;
+
+        CloneWorkspaceSCMRevisionState(int parentBuildNumber) {
+            this.parentBuildNumber = parentBuildNumber;
+        }
+
+        private static final long serialVersionUID = 1L;
+    }
+
+    private static final Logger LOGGER = Logger.getLogger(CloneWorkspaceSCM.class.getName());
+
+}
