@@ -66,8 +66,8 @@ public class CloneWorkspacePublisher extends Recorder {
 
     /**
      * The criteria which determines whether we'll archive a given build's workspace.
-     * Can be "Any" (meaning most recent completed build), "Successful" (meaning most recent unstable/stable build),
-     * or "Stable" (meaning most recent stable build).
+     * Can be "Any" (meaning most recent completed build), "Not Failed" (meaning most recent unstable/stable build),
+     * or "Successful" (meaning most recent stable build).
      */
     private final String criteria;
 

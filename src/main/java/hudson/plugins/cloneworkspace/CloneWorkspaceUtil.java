@@ -39,10 +39,10 @@ public class CloneWorkspaceUtil {
     public static Result getResultForCriteria(String criteria) {
         Result criteriaResult = Result.FAILURE;
 
-        if (criteria.equals("Successful")) {
+        if (criteria.equals("Not Failed")) {
             criteriaResult = Result.UNSTABLE;
         }
-        else if (criteria.equals("Stable")) {
+        else if (criteria.equals("Successful")) {
             criteriaResult = Result.SUCCESS;
         }
 

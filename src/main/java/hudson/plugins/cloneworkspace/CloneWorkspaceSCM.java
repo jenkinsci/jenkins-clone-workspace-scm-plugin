@@ -78,8 +78,8 @@ public class CloneWorkspaceSCM extends SCM {
     
     /**
      * The criteria by which to choose the build to inherit from.
-     * Can be "Any" (meaning most recent completed build), "Successful" (meaning most recent unstable/stable build),
-     * or "Stable" (meaning most recent stable build).
+     * Can be "Any" (meaning most recent completed build), "Not Failed" (meaning most recent unstable/stable build),
+     * or "Successful" (meaning most recent stable build).
      */
     public String criteria;
 
@@ -271,17 +271,6 @@ public class CloneWorkspaceSCM extends SCM {
         }
     }
 
-    public List<String> getEligibleParents() {
-        List<String> parentNames = new ArrayList<String>();
-        
-        for (AbstractProject p : Hudson.getInstance().getItems(AbstractProject.class)) {
-            if (p.getPublishersList().get(CloneWorkspacePublisher.class) != null) {
-                parentNames.add(p.getDisplayName());
-            }
-        }
-
-        return parentNames;
-    }
         
 
     @Extension
@@ -300,6 +289,18 @@ public class CloneWorkspaceSCM extends SCM {
         @Override
         public SCM newInstance(StaplerRequest req, JSONObject formData) throws FormException {
             return req.bindJSON(CloneWorkspaceSCM.class, formData);
+        }
+
+        public List<String> getEligibleParents() {
+            List<String> parentNames = new ArrayList<String>();
+            
+            for (AbstractProject p : Hudson.getInstance().getItems(AbstractProject.class)) {
+                if (p.getPublishersList().get(CloneWorkspacePublisher.class) != null) {
+                    parentNames.add(p.getDisplayName());
+                }
+            }
+            
+            return parentNames;
         }
 
     }
