@@ -42,10 +42,15 @@ import hudson.Launcher;
 import hudson.FilePath;
 import hudson.WorkspaceSnapshot;
 import hudson.PermalinkList;
+import hudson.Extension;
+import static hudson.Util.fixEmptyAndTrim;
 
 import java.io.IOException;
 import java.io.File;
 import java.io.Serializable;
+import java.io.FileReader;
+import java.io.BufferedReader;
+import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.logging.Level;
@@ -53,6 +58,7 @@ import java.util.logging.Logger;
 
 import net.sf.json.JSONObject;
 
+import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
@@ -138,10 +144,6 @@ public class CloneWorkspaceSCM extends SCM {
         return new Snapshot(snapshot,b);
     }
 
-    protected PollingResult compareRemoteRevisionWith(AbstractProject project, Launcher launcher, FilePath workspace, TaskListener listener, SCMRevisionState baseline) throws IOException, InterruptedException {
-        return PollingResult.NO_CHANGES;
-    }
-
     @Override
     public boolean checkout(AbstractBuild build, Launcher launcher, FilePath workspace, BuildListener listener, File changelogFile) throws IOException, InterruptedException {
         try {
@@ -154,7 +156,7 @@ public class CloneWorkspaceSCM extends SCM {
                 w.close();
             }
             
-            return calcChangeLog(resolve().getParent(), changeLogFile, listener);
+            return calcChangeLog(resolve().getParent(), changelogFile, listener);
         } catch (ResolvedFailedException e) {
             listener.error(e.getMessage()); // stack trace is meaningless
             build.setResult(Result.FAILURE);
@@ -167,8 +169,8 @@ public class CloneWorkspaceSCM extends SCM {
      */
     private boolean calcChangeLog(AbstractBuild<?,?> parentBuild, File changelogFile, BuildListener listener) throws IOException, InterruptedException {
         FilePath parentChangeLog = new FilePath(new File(parentBuild.getRootDir(), "changelog.xml"));
-        if (parentChangeLogFile.exists()) {
-            FilePath childChangeLog = new FilePath(changeLogFile);
+        if (parentChangeLog.exists()) {
+            FilePath childChangeLog = new FilePath(changelogFile);
             parentChangeLog.copyTo(childChangeLog);
         }
         else {
@@ -179,7 +181,11 @@ public class CloneWorkspaceSCM extends SCM {
 
     @Override
     public ChangeLogParser createChangeLogParser() {
-        return resolve().getParent().getProject().getSCM().createChangeLogParser();
+        try {
+            return resolve().getParent().getProject().getScm().createChangeLogParser();
+        } catch (ResolvedFailedException e) {
+            return null;
+        } 
     }
 
     @Override
@@ -229,7 +235,7 @@ public class CloneWorkspaceSCM extends SCM {
                 String line;
                 while((line=br.readLine())!=null) {
                     try {
-                        parentBuildNumber = Integer.parseInt(line);
+                        parentBuildNumber = Integer.parseInt(fixEmptyAndTrim(line));
                     } catch (NumberFormatException e) {
                         // perhaps a corrupted line. ignore
                     }
@@ -288,14 +294,10 @@ public class CloneWorkspaceSCM extends SCM {
                 return NO_CHANGES;
             }
         }
-        
-
-        // If we somehow got down to here, no build.
-        return NO_CHANGES;
     }
 
-    private AbstractBuild<?,?> getMostRecentBuildForCriteria(AbstractProject project) {
-        AbstractBuild<?,?> b = getLastBuild();
+    private AbstractBuild<?,?> getMostRecentBuildForCriteria(AbstractProject<?,?> project) {
+        AbstractBuild<?,?> b = project.getLastBuild();
 
         Result criteriaResult = Result.FAILURE;
 
@@ -303,7 +305,7 @@ public class CloneWorkspaceSCM extends SCM {
             criteriaResult = Result.UNSTABLE;
         }
         else if (criteria.equals("Stable")) {
-            criteriaResult = Result.STABLE;
+            criteriaResult = Result.SUCCESS;
         }
         
         while (b != null
