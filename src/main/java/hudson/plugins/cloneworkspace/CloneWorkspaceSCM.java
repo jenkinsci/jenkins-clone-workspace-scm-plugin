@@ -53,6 +53,8 @@ import java.io.BufferedReader;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -268,6 +270,19 @@ public class CloneWorkspaceSCM extends SCM {
             }
         }
     }
+
+    public List<String> getEligibleParents() {
+        List<String> parentNames = new ArrayList<String>();
+        
+        for (AbstractProject p : Hudson.getInstance().getItems(AbstractProject.class)) {
+            if (p.getPublishersList().get(CloneWorkspacePublisher.class) != null) {
+                parentNames.add(p.getDisplayName());
+            }
+        }
+
+        return parentNames;
+    }
+        
 
     @Extension
     public static class DescriptorImpl extends SCMDescriptor<CloneWorkspaceSCM> {
