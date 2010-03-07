@@ -122,6 +122,7 @@ public class CloneWorkspaceSCM extends SCM {
     @Override
     public boolean checkout(AbstractBuild build, Launcher launcher, FilePath workspace, BuildListener listener, File changelogFile) throws IOException, InterruptedException {
         try {
+            workspace.deleteContents();
             resolve().restoreTo(workspace,listener);
             // write out the parent build number file
             PrintWriter w = new PrintWriter(new FileOutputStream(getParentBuildFile(build)));
