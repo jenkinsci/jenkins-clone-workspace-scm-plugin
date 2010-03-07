@@ -1,7 +1,7 @@
 /*
  * The MIT License
  * 
- * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi, Andrew Bayer
+ * Copyright (c) 2004-2010, Sun Microsystems, Inc., Kohsuke Kawaguchi, Andrew Bayer
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -86,33 +86,6 @@ public class CloneWorkspaceSCM extends SCM {
         this.parentJobName = parentJobName;
         this.criteria = criteria;
     }
-
-    /**
-     * {@link Exception} indicating that the resolution of the job/build failed.
-     */
-    private final class ResolvedFailedException extends Exception {
-        private ResolvedFailedException(String message) {
-            super(message);
-        }
-    }
-
-    private static class Snapshot {
-        final WorkspaceSnapshot snapshot;
-        final AbstractBuild<?,?> parent;
-
-        private Snapshot(WorkspaceSnapshot snapshot, AbstractBuild<?,?> parent) {
-            this.snapshot = snapshot;
-            this.parent = parent;
-        }
-
-        void restoreTo(FilePath dst,TaskListener listener) throws IOException, InterruptedException {
-            snapshot.restoreTo(parent,dst,listener);
-        }
-
-        AbstractBuild<?,?> getParent() {
-            return parent;
-        }
-    }
     
     /**
      * Obtains the {@link WorkspaceSnapshot} object that this {@link SCM} points to,
@@ -132,7 +105,7 @@ public class CloneWorkspaceSCM extends SCM {
         }
 
         
-        AbstractBuild<?,?> b = getMostRecentBuildForCriteria(job);
+        AbstractBuild<?,?> b = CloneWorkspaceUtil.getMostRecentBuildForCriteria(job,criteria);
         
         if(b==null)
             throw new ResolvedFailedException(Messages.CloneWorkspaceSCM_NoBuild(criteria,parentJobName));
@@ -296,26 +269,6 @@ public class CloneWorkspaceSCM extends SCM {
         }
     }
 
-    private AbstractBuild<?,?> getMostRecentBuildForCriteria(AbstractProject<?,?> project) {
-        AbstractBuild<?,?> b = project.getLastBuild();
-
-        Result criteriaResult = Result.FAILURE;
-
-        if (criteria.equals("Successful")) {
-            criteriaResult = Result.UNSTABLE;
-        }
-        else if (criteria.equals("Stable")) {
-            criteriaResult = Result.SUCCESS;
-        }
-        
-        while (b != null
-               && (b.isBuilding() || b.getResult() == null
-                   || b.getResult().isWorseThan(criteriaResult)))
-            b = b.getPreviousBuild();
-
-        return b;
-    }
-
     @Extension
     public static class DescriptorImpl extends SCMDescriptor<CloneWorkspaceSCM> {
         public DescriptorImpl() {
@@ -347,6 +300,34 @@ public class CloneWorkspaceSCM extends SCM {
         private static final long serialVersionUID = 1L;
     }
 
-    private static final Logger LOGGER = Logger.getLogger(CloneWorkspaceSCM.class.getName());
+ 
+    /**
+     * {@link Exception} indicating that the resolution of the job/build failed.
+     */
+    private final class ResolvedFailedException extends Exception {
+        private ResolvedFailedException(String message) {
+            super(message);
+        }
+    }
+
+    private static class Snapshot {
+        final WorkspaceSnapshot snapshot;
+        final AbstractBuild<?,?> parent;
+
+        private Snapshot(WorkspaceSnapshot snapshot, AbstractBuild<?,?> parent) {
+            this.snapshot = snapshot;
+            this.parent = parent;
+        }
+
+        void restoreTo(FilePath dst,TaskListener listener) throws IOException, InterruptedException {
+            snapshot.restoreTo(parent,dst,listener);
+        }
+
+        AbstractBuild<?,?> getParent() {
+            return parent;
+        }
+    }
+
+   private static final Logger LOGGER = Logger.getLogger(CloneWorkspaceSCM.class.getName());
 
 }

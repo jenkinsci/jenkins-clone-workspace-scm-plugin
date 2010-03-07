@@ -11,12 +11,17 @@ Workflow:
      - If retention policy is anything but "keep everything", apply it.
 
   - config:
+    - Contents to retain:
+      - glob, if unspecified will default to **/*
     - Retain:
       - For all builds
       - For most recent completed build (with threshold options for successful, >=unstable, >=failed as well)
       - For X most recent builds
       - For X most recent completed build (w/ threshold)
 
+  - Cleanup:
+
+      
 - SCM:
   - polling:
       - Retain build number of previous parent build for comparison
