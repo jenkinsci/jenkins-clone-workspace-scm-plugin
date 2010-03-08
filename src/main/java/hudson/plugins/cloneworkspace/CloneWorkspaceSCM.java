@@ -225,7 +225,7 @@ public class CloneWorkspaceSCM extends SCM {
     }
 
     @Override
-    public SCMRevisionState calcRevisionsFromBuild(AbstractBuild<?, ?> build, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
+    public SCMRevisionState calcRevisionsFromBuild(AbstractBuild build, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
         // exclude locations that are svn:external-ed with a fixed revision.
         int parentBuildNumber = parseParentBuildFile(build,true);
 
@@ -240,7 +240,7 @@ public class CloneWorkspaceSCM extends SCM {
             // Disable this project if the parent project no longer exists or doesn't exist in the first place.
             listener.getLogger().println("The CloneWorkspace parent project for " + project + " does not exist, project will be disabled."); 
             project.makeDisabled(true);
-            return NO_CHANGES;
+            return new PollingResult(_baseline, _baseline, PollingResult.Change.NONE);
         }
 
         final CloneWorkspaceSCMRevisionState baseline = (CloneWorkspaceSCMRevisionState)_baseline;
@@ -250,24 +250,28 @@ public class CloneWorkspaceSCM extends SCM {
             s = resolve();
         } catch (ResolvedFailedException e) {
             listener.getLogger().println(e.getMessage());
-            return NO_CHANGES;
+            return new PollingResult(baseline, baseline, PollingResult.Change.NONE);
+            //            return NO_CHANGES;
         }
         if (s==null) {
             listener.getLogger().println("Snapshot failed to resolve for unknown reasons.");
-            return NO_CHANGES;
+            return new PollingResult(baseline, baseline, PollingResult.Change.NONE);
+            //            return NO_CHANGES;
         }
         else {
             if (s.getParent().getNumber() > baseline.parentBuildNumber) {
                 listener.getLogger().println("Build #" + s.getParent().getNumber() + " of project " + parentJobName
                                              + " is newer than build #" + baseline.parentBuildNumber + ", so a new build of "
                                              + project + " will be run.");
-                return BUILD_NOW;
+                return new PollingResult(baseline, new CloneWorkspaceSCMRevisionState(s.getParent().getNumber()), PollingResult.Change.SIGNIFICANT);
+            //                return BUILD_NOW;
             }
             else {
                 listener.getLogger().println("Build #" + s.getParent().getNumber() + " of project " + parentJobName
                                              + " is NOT newer than build #" + baseline.parentBuildNumber + ", so no new build of "
                                              + project + " will be run.");
-                return NO_CHANGES;
+                return new PollingResult(baseline, baseline, PollingResult.Change.NONE);
+            //                return NO_CHANGES;
             }
         }
     }

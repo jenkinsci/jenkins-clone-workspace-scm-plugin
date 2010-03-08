@@ -23,10 +23,10 @@ THE SOFTWARE.
 -->
 
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-  <f:entry title="${%Files to include in workspace snapshot}" field="workspaceGlob">
+  <f:entry title="${%Files to include in workspace snapshot}" field="workspaceGlob" help="/plugin/clone-workspace-scm/workspaceGlob.html">
     <f:textbox />
   </f:entry>
-  <f:entry title="${%Criteria for build to be archived}">
+  <f:entry title="${%Criteria for build to be archived}" help="/plugin/clone-workspace-scm/parentCriteria.html">
     <select name="criteria">
       <f:option value="Any" selected='${it.criteria=="Any"}'>${%Most Recent Completed Build}</f:option>
       <f:option value="Not Failed" selected='${it.criteria=="Not Failed"}'>${%Most Recent Not Failed Build}</f:option>
