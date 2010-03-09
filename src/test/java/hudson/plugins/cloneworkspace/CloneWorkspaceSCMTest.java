@@ -47,15 +47,10 @@ import java.util.Set;
 public class CloneWorkspaceSCMTest extends HudsonTestCase {
 
     public void testBasicCloning() throws Exception {
-        FreeStyleProject parentJob = createFreeStyleProject("parentJob");
-        parentJob.setScm(new ExtractResourceWithChangesSCM(getClass().getResource("maven-multimod.zip"),
-                                                           getClass().getResource("maven-multimod-changes.zip")));
-        parentJob.getPublishersList().add(new CloneWorkspacePublisher("**/*", "Any"));
-        
+        FreeStyleProject parentJob = createCloneParentProject();
         buildAndAssertSuccess(parentJob);
 
-        FreeStyleProject childJob = createFreeStyleProject();
-        childJob.setScm(new CloneWorkspaceSCM("parentJob", "Any"));
+        FreeStyleProject childJob = createCloneChildProject();
         buildAndAssertSuccess(childJob);
 
         FreeStyleBuild fb = childJob.getLastBuild();
@@ -66,16 +61,12 @@ public class CloneWorkspaceSCMTest extends HudsonTestCase {
     }
 
     public void testSlaveCloning() throws Exception {
-        FreeStyleProject parentJob = createFreeStyleProject("parentJob");
-        parentJob.setScm(new ExtractResourceWithChangesSCM(getClass().getResource("maven-multimod.zip"),
-                                                           getClass().getResource("maven-multimod-changes.zip")));
-        parentJob.getPublishersList().add(new CloneWorkspacePublisher("**/*", "Any"));
+        FreeStyleProject parentJob = createCloneParentProject();
         parentJob.setAssignedLabel(createSlave(new Label("parentSlave")).getSelfLabel());
 
         buildAndAssertSuccess(parentJob);
 
-        FreeStyleProject childJob = createFreeStyleProject();
-        childJob.setScm(new CloneWorkspaceSCM("parentJob", "Any"));
+        FreeStyleProject childJob = createCloneChildProject();
         childJob.setAssignedLabel(createSlave(new Label("childSlave")).getSelfLabel());
         buildAndAssertSuccess(childJob);
 
@@ -87,15 +78,11 @@ public class CloneWorkspaceSCMTest extends HudsonTestCase {
     }
 
     public void testGlobCloning() throws Exception {
-        FreeStyleProject parentJob = createFreeStyleProject("parentJob");
-        parentJob.setScm(new ExtractResourceWithChangesSCM(getClass().getResource("maven-multimod.zip"),
-                                                           getClass().getResource("maven-multimod-changes.zip")));
-        parentJob.getPublishersList().add(new CloneWorkspacePublisher("moduleB/**/*", "Any"));
+        FreeStyleProject parentJob = createCloneParentProject(new CloneWorkspacePublisher("moduleB/**/*", "Any"));
         
         buildAndAssertSuccess(parentJob);
 
-        FreeStyleProject childJob = createFreeStyleProject();
-        childJob.setScm(new CloneWorkspaceSCM("parentJob", "Any"));
+        FreeStyleProject childJob = createCloneChildProject();
         buildAndAssertSuccess(childJob);
 
         FreeStyleBuild fb = childJob.getLastBuild();
@@ -107,77 +94,60 @@ public class CloneWorkspaceSCMTest extends HudsonTestCase {
     }
 
     public void testNoParentCloningFails() throws Exception {
-        FreeStyleProject childJob = createFreeStyleProject();
-        childJob.setScm(new CloneWorkspaceSCM("parentJob", "Any"));
+        FreeStyleProject childJob = createCloneChildProject();
+
         assertBuildStatus(Result.FAILURE, childJob.scheduleBuild2(0).get());
     }
 
     public void testNotFailedCriteriaDoesNotAcceptFailure() throws Exception {
-        FreeStyleProject parentJob = createFreeStyleProject("parentJob");
-        parentJob.setScm(new ExtractResourceWithChangesSCM(getClass().getResource("maven-multimod.zip"),
-                                                           getClass().getResource("maven-multimod-changes.zip")));
-        parentJob.getPublishersList().add(new CloneWorkspacePublisher("**/*", "Any"));
+        FreeStyleProject parentJob = createCloneParentProject();
+
         parentJob.getBuildersList().add(new FailureBuilder());
         
         assertBuildStatus(Result.FAILURE, parentJob.scheduleBuild2(0).get());
         
-        FreeStyleProject childJob = createFreeStyleProject();
-        childJob.setScm(new CloneWorkspaceSCM("parentJob", "Not Failed"));
+        FreeStyleProject childJob = createCloneChildProject(new CloneWorkspaceSCM("parentJob", "Not Failed"));
         assertBuildStatus(Result.FAILURE, childJob.scheduleBuild2(0).get());
     }
 
     public void testSuccessfulCriteriaDoesNotAcceptUnstable() throws Exception {
-        FreeStyleProject parentJob = createFreeStyleProject("parentJob");
-        parentJob.setScm(new ExtractResourceWithChangesSCM(getClass().getResource("maven-multimod.zip"),
-                                                           getClass().getResource("maven-multimod-changes.zip")));
-        parentJob.getPublishersList().add(new CloneWorkspacePublisher("**/*", "Any"));
+        FreeStyleProject parentJob = createCloneParentProject();
+
         parentJob.getBuildersList().add(new UnstableBuilder());
         
         assertBuildStatus(Result.UNSTABLE, parentJob.scheduleBuild2(0).get());
 
-        FreeStyleProject childJob = createFreeStyleProject();
-        childJob.setScm(new CloneWorkspaceSCM("parentJob", "Successful"));
+        FreeStyleProject childJob = createCloneChildProject(new CloneWorkspaceSCM("parentJob", "Successful"));
         assertBuildStatus(Result.FAILURE, childJob.scheduleBuild2(0).get());
     }
 
     public void testNotFailedCriteriaDoesAcceptUnstable() throws Exception {
-        FreeStyleProject parentJob = createFreeStyleProject("parentJob");
-        parentJob.setScm(new ExtractResourceWithChangesSCM(getClass().getResource("maven-multimod.zip"),
-                                                           getClass().getResource("maven-multimod-changes.zip")));
-        parentJob.getPublishersList().add(new CloneWorkspacePublisher("**/*", "Any"));
+        FreeStyleProject parentJob = createCloneParentProject();
+
         parentJob.getBuildersList().add(new UnstableBuilder());
         
         assertBuildStatus(Result.UNSTABLE, parentJob.scheduleBuild2(0).get());
 
-        FreeStyleProject childJob = createFreeStyleProject();
-        childJob.setScm(new CloneWorkspaceSCM("parentJob", "Not Failed"));
+        FreeStyleProject childJob = createCloneChildProject(new CloneWorkspaceSCM("parentJob", "Not Failed"));
         assertBuildStatus(Result.SUCCESS, childJob.scheduleBuild2(0).get());
     }
 
     public void testNotFailedParentCriteriaDoesNotArchiveFailure() throws Exception {
-        FreeStyleProject parentJob = createFreeStyleProject("parentJob");
-        parentJob.setScm(new ExtractResourceWithChangesSCM(getClass().getResource("maven-multimod.zip"),
-                                                           getClass().getResource("maven-multimod-changes.zip")));
-        parentJob.getPublishersList().add(new CloneWorkspacePublisher("**/*", "Not Failed"));
+        FreeStyleProject parentJob = createCloneParentProject(new CloneWorkspacePublisher("**/*", "Not Failed"));
+
         parentJob.getBuildersList().add(new FailureBuilder());
         
         assertBuildStatus(Result.FAILURE, parentJob.scheduleBuild2(0).get());
 
-        FreeStyleProject childJob = createFreeStyleProject();
-        childJob.setScm(new CloneWorkspaceSCM("parentJob", "Any"));
+        FreeStyleProject childJob = createCloneChildProject();
         assertBuildStatus(Result.FAILURE, childJob.scheduleBuild2(0).get());
     }
 
     public void testCulprits() throws Exception {
-         FreeStyleProject parentJob = createFreeStyleProject("parentJob");
-        parentJob.setScm(new ExtractResourceWithChangesSCM(getClass().getResource("maven-multimod.zip"),
-                                                           getClass().getResource("maven-multimod-changes.zip")));
-        parentJob.getPublishersList().add(new CloneWorkspacePublisher("**/*", "Any"));
-        
+        FreeStyleProject parentJob = createCloneParentProject();
         buildAndAssertSuccess(parentJob);
 
-        FreeStyleProject childJob = createFreeStyleProject();
-        childJob.setScm(new CloneWorkspaceSCM("parentJob", "Any"));
+        FreeStyleProject childJob = createCloneChildProject();
         buildAndAssertSuccess(childJob);
 
         FreeStyleBuild fb = childJob.getLastBuild();
@@ -188,15 +158,10 @@ public class CloneWorkspaceSCMTest extends HudsonTestCase {
     }
 
     public void testChangeLogSetNotEmpty() throws Exception {
-         FreeStyleProject parentJob = createFreeStyleProject("parentJob");
-        parentJob.setScm(new ExtractResourceWithChangesSCM(getClass().getResource("maven-multimod.zip"),
-                                                           getClass().getResource("maven-multimod-changes.zip")));
-        parentJob.getPublishersList().add(new CloneWorkspacePublisher("**/*", "Any"));
-        
+        FreeStyleProject parentJob = createCloneParentProject();
         buildAndAssertSuccess(parentJob);
 
-        FreeStyleProject childJob = createFreeStyleProject();
-        childJob.setScm(new CloneWorkspaceSCM("parentJob", "Any"));
+        FreeStyleProject childJob = createCloneChildProject();
         buildAndAssertSuccess(childJob);
 
         FreeStyleBuild fb = childJob.getLastBuild();
@@ -213,4 +178,29 @@ public class CloneWorkspaceSCMTest extends HudsonTestCase {
 
         assertTrue("ChangeLogSet should contain moduleB/src/main/java/test/AppB.java but does not", changedFiles.contains("moduleB/src/main/java/test/AppB.java"));
     }
+
+    private FreeStyleProject createCloneChildProject() throws Exception {
+        return createCloneChildProject(new CloneWorkspaceSCM("parentJob", "any"));
+    }
+
+    private FreeStyleProject createCloneChildProject(CloneWorkspaceSCM cws) throws Exception {
+        FreeStyleProject childJob = createFreeStyleProject();
+        childJob.setScm(cws);
+
+        return childJob;
+    }
+    
+    private FreeStyleProject createCloneParentProject() throws Exception {
+        return createCloneParentProject(new CloneWorkspacePublisher("**/*", "Any"));
+    }
+    
+    private FreeStyleProject createCloneParentProject(CloneWorkspacePublisher cwp) throws Exception {
+        FreeStyleProject parentJob = createFreeStyleProject("parentJob");
+        parentJob.setScm(new ExtractResourceWithChangesSCM(getClass().getResource("maven-multimod.zip"),
+                                                           getClass().getResource("maven-multimod-changes.zip")));
+        parentJob.getPublishersList().add(cwp);
+
+        return parentJob;
+    }
+        
 }
