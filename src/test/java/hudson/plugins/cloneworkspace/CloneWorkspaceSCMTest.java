@@ -64,6 +64,26 @@ public class CloneWorkspaceSCMTest extends HudsonTestCase {
         assertTrue("pom.xml should exist", ws.child("pom.xml").exists());
     }
 
+    public void testSelectiveCloning() throws Exception {
+        FreeStyleProject parentJob = createFreeStyleProject("parentJob");
+        parentJob.setScm(new ExtractResourceWithChangesSCM(getClass().getResource("maven-multimod.zip"),
+                                                           getClass().getResource("maven-multimod-changes.zip")));
+        parentJob.getPublishersList().add(new CloneWorkspacePublisher("moduleB/**/*", "Any"));
+        
+        buildAndAssertSuccess(parentJob);
+
+        FreeStyleProject childJob = createFreeStyleProject();
+        childJob.setScm(new CloneWorkspaceSCM("parentJob", "Any"));
+        buildAndAssertSuccess(childJob);
+
+        FreeStyleBuild fb = childJob.getLastBuild();
+
+        FilePath ws = fb.getWorkspace();
+
+        assertFalse("pom.xml should NOT exist", ws.child("pom.xml").exists());
+        assertTrue("moduleB/pom.xml should exist", ws.child("moduleB").child("pom.xml").exists());
+    }
+
     public void testNoParentCloningFails() throws Exception {
         FreeStyleProject childJob = createFreeStyleProject();
         childJob.setScm(new CloneWorkspaceSCM("parentJob", "Any"));
