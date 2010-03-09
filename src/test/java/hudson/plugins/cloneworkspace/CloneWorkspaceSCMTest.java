@@ -64,7 +64,7 @@ public class CloneWorkspaceSCMTest extends HudsonTestCase {
         assertTrue("pom.xml should exist", ws.child("pom.xml").exists());
     }
 
-    public void testSelectiveCloning() throws Exception {
+    public void testGlobCloning() throws Exception {
         FreeStyleProject parentJob = createFreeStyleProject("parentJob");
         parentJob.setScm(new ExtractResourceWithChangesSCM(getClass().getResource("maven-multimod.zip"),
                                                            getClass().getResource("maven-multimod-changes.zip")));
