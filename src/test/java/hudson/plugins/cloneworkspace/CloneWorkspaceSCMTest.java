@@ -27,6 +27,7 @@ import hudson.FilePath;
 
 import hudson.model.FreeStyleProject;
 import hudson.model.FreeStyleBuild;
+import hudson.model.Label;
 import hudson.model.Result;
 import hudson.model.User;
 import hudson.scm.ChangeLogSet;
@@ -55,6 +56,27 @@ public class CloneWorkspaceSCMTest extends HudsonTestCase {
 
         FreeStyleProject childJob = createFreeStyleProject();
         childJob.setScm(new CloneWorkspaceSCM("parentJob", "Any"));
+        buildAndAssertSuccess(childJob);
+
+        FreeStyleBuild fb = childJob.getLastBuild();
+
+        FilePath ws = fb.getWorkspace();
+
+        assertTrue("pom.xml should exist", ws.child("pom.xml").exists());
+    }
+
+    public void testSlaveCloning() throws Exception {
+        FreeStyleProject parentJob = createFreeStyleProject("parentJob");
+        parentJob.setScm(new ExtractResourceWithChangesSCM(getClass().getResource("maven-multimod.zip"),
+                                                           getClass().getResource("maven-multimod-changes.zip")));
+        parentJob.getPublishersList().add(new CloneWorkspacePublisher("**/*", "Any"));
+        parentJob.setAssignedLabel(createSlave(new Label("parentSlave")).getSelfLabel());
+
+        buildAndAssertSuccess(parentJob);
+
+        FreeStyleProject childJob = createFreeStyleProject();
+        childJob.setScm(new CloneWorkspaceSCM("parentJob", "Any"));
+        childJob.setAssignedLabel(createSlave(new Label("childSlave")).getSelfLabel());
         buildAndAssertSuccess(childJob);
 
         FreeStyleBuild fb = childJob.getLastBuild();
