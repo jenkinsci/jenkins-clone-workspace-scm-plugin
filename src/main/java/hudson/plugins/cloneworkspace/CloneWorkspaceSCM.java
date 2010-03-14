@@ -287,7 +287,7 @@ public class CloneWorkspaceSCM extends SCM {
 
         @Override
         public String getDisplayName() {
-            return "Clone Workspace";
+            return Messages.CloneWorkspaceSCM_DisplayName();
         }
 
         
