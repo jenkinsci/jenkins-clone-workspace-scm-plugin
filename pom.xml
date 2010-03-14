@@ -99,6 +99,7 @@ THE SOFTWARE.
   
   <scm>
     <connection>scm:git:git://github.com/abayer/hudson-clone-workspace-scm-plugin.git</connection>
+    <developerConnection>scm:git:git://github.com/abayer/hudson-clone-workspace-scm-plugin.git</developerConnection>
   </scm>
 
 </project>
