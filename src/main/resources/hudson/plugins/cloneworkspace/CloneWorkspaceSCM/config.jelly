@@ -37,7 +37,7 @@ THE SOFTWARE.
     <select name="criteria">
       <f:option value="Any" selected='${scm.criteria=="Any"}'>${%Most Recent Completed Build}</f:option>
       <f:option value="Not Failed" selected='${scm.criteria=="Not Failed"}'>${%Most Recent Not Failed Build}</f:option>
-      <f:option value="Successful" selected='${scm.criteria=="Succesful"}'>${%Most Recent Succesful Build}</f:option>
+      <f:option value="Successful" selected='${scm.criteria=="Successful"}'>${%Most Recent Successful Build}</f:option>
     </select>
   </f:entry>
 </j:jelly>
