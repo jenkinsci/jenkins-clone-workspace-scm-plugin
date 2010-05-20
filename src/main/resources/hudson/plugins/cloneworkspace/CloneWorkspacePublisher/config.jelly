@@ -28,9 +28,9 @@ THE SOFTWARE.
   </f:entry>
   <f:entry title="${%Criteria for build to be archived}" help="/plugin/clone-workspace-scm/parentCriteria.html">
     <select name="criteria">
-      <f:option value="Any" selected='${it.criteria=="Any"}'>${%Most Recent Completed Build}</f:option>
-      <f:option value="Not Failed" selected='${it.criteria=="Not Failed"}'>${%Most Recent Not Failed Build}</f:option>
-      <f:option value="Successful" selected='${it.criteria=="Successful"}'>${%Most Recent Successful Build}</f:option>
+      <f:option value="Any" selected='${instance.criteria=="Any"}'>${%Most Recent Completed Build}</f:option>
+      <f:option value="Not Failed" selected='${instance.criteria=="Not Failed"}'>${%Most Recent Not Failed Build}</f:option>
+      <f:option value="Successful" selected='${instance.criteria=="Successful"}'>${%Most Recent Successful Build}</f:option>
     </select>
   </f:entry>
 </j:jelly>
