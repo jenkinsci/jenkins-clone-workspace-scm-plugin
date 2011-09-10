@@ -92,4 +92,13 @@ public class CloneWorkspaceUtil {
             return null;
         }
     }
+
+    public static String getFileNameForMethod(String method)
+    {
+        if (method == "ZIP") {
+            return "workspace.zip";
+        } else {
+            return "workspace.tar.gz";
+        }
+    }
 }
