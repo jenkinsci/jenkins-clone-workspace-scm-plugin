@@ -26,7 +26,7 @@ THE SOFTWARE.
   <f:entry title="${%Files to include in cloned workspace}" field="workspaceGlob" help="/plugin/clone-workspace-scm/workspaceGlob.html">
     <f:textbox />
   </f:entry>
-  <f:entry title="${%Files to include in cloned workspace}" field="workspaceExcludeGlob" help="/plugin/clone-workspace-scm/workspaceGlob.html">
+  <f:entry title="${%Files to exclude from cloned workspace}" field="workspaceExcludeGlob" help="/plugin/clone-workspace-scm/workspaceGlob.html">
     <f:textbox />
   </f:entry>
   <f:entry title="${%Criteria for build to be archived}" help="/plugin/clone-workspace-scm/parentCriteria.html">
