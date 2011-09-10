@@ -123,16 +123,20 @@ public class CloneWorkspaceSCM extends SCM {
     public boolean checkout(AbstractBuild build, Launcher launcher, FilePath workspace, BuildListener listener, File changelogFile) throws IOException, InterruptedException {
         try {
             workspace.deleteContents();
-            resolve().restoreTo(workspace,listener);
+
+            Snapshot snapshot = resolve();
+            listener.getLogger().println("Restoring workspace from build #" + snapshot.getParent().getNumber() + " of project " + parentJobName);
+            snapshot.restoreTo(workspace,listener);
+
             // write out the parent build number file
             PrintWriter w = new PrintWriter(new FileOutputStream(getParentBuildFile(build)));
             try {
-                w.println(resolve().getParent().getNumber());
+                w.println(snapshot.getParent().getNumber());
             } finally {
                 w.close();
             }
             
-            return calcChangeLog(resolve().getParent(), changelogFile, listener);
+            return calcChangeLog(snapshot.getParent(), changelogFile, listener);
         } catch (ResolvedFailedException e) {
             listener.error(e.getMessage()); // stack trace is meaningless
             build.setResult(Result.FAILURE);
