@@ -26,11 +26,20 @@ THE SOFTWARE.
   <f:entry title="${%Files to include in cloned workspace}" field="workspaceGlob" help="/plugin/clone-workspace-scm/workspaceGlob.html">
     <f:textbox />
   </f:entry>
+  <f:entry title="${%Files to exclude from cloned workspace}" field="workspaceExcludeGlob" help="/plugin/clone-workspace-scm/workspaceExcludeGlob.html">
+    <f:textbox />
+  </f:entry>
   <f:entry title="${%Criteria for build to be archived}" help="/plugin/clone-workspace-scm/parentCriteria.html">
     <select name="criteria">
       <f:option value="Any" selected='${instance.criteria=="Any"}'>${%Most Recent Completed Build}</f:option>
       <f:option value="Not Failed" selected='${instance.criteria=="Not Failed"}'>${%Most Recent Not Failed Build}</f:option>
       <f:option value="Successful" selected='${instance.criteria=="Successful"}'>${%Most Recent Successful Build}</f:option>
+    </select>
+  </f:entry>
+  <f:entry title="${%Archive method}" help="/plugin/clone-workspace-scm/archiveMethod.html">
+    <select name="archiveMethod">
+      <f:option value="TAR" selected='${instance.criteria=="TAR"}'>${%Gzipped tar}</f:option>
+      <f:option value="ZIP" selected='${instance.criteria=="ZIP"}'>${%Zipped}</f:option>
     </select>
   </f:entry>
 </j:jelly>
