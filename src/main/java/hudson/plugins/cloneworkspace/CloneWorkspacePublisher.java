@@ -208,7 +208,7 @@ public class CloneWorkspacePublisher extends Recorder {
 
     public WorkspaceSnapshot snapshot(AbstractBuild<?,?> build, FilePath ws, DirScanner scanner, TaskListener listener, String archiveMethod) throws IOException, InterruptedException {
         File wss = new File(build.getRootDir(), CloneWorkspaceUtil.getFileNameForMethod(archiveMethod));
-        if (archiveMethod == "ZIP") {
+        if (archiveMethod.equals("ZIP")) {
             OutputStream os = new BufferedOutputStream(new FileOutputStream(wss));
             try {
                 ws.zip(os, scanner);
