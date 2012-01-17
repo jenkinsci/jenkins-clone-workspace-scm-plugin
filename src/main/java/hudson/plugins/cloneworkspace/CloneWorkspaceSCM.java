@@ -30,10 +30,11 @@ import hudson.scm.SCMDescriptor;
 import hudson.scm.SCMRevisionState;
 import static hudson.scm.PollingResult.BUILD_NOW;
 import static hudson.scm.PollingResult.NO_CHANGES;
+import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Descriptor;
 import hudson.model.TaskListener;
-import hudson.model.AbstractBuild;
+import hudson.model.ParametersAction;
 import hudson.model.BuildListener;
 import hudson.model.Hudson;
 import hudson.model.Result;
@@ -88,33 +89,52 @@ public class CloneWorkspaceSCM extends SCM {
         this.parentJobName = parentJobName;
         this.criteria = criteria;
     }
+
+    /**
+     * Get the parent job name. Process it for parameters if needed.
+     *
+     * @return Parent job name.
+     */
+    public String getParamParentJobName(AbstractBuild<?, ?> build) {
+        String original = parentJobName;
+        if (build != null) {
+            ParametersAction parameters = build.getAction(ParametersAction.class);
+            if (parameters != null) {
+                original = parameters.substitute(build, original);
+            }
+        }
+
+        return original;
+    }
+        
     
     /**
      * Obtains the {@link WorkspaceSnapshot} object that this {@link SCM} points to,
      * or throws {@link ResolvedFailedException} upon failing.
      *
+     * @param parentJob Processed parent job name.
      * @return never null.
      */
-    public Snapshot resolve() throws ResolvedFailedException {
+    public Snapshot resolve(String parentJob) throws ResolvedFailedException {
         Hudson h = Hudson.getInstance();
-        AbstractProject<?,?> job = h.getItemByFullName(parentJobName, AbstractProject.class);
+        AbstractProject<?,?> job = h.getItemByFullName(parentJob, AbstractProject.class);
         if(job==null) {
-            if(h.getItemByFullName(parentJobName)==null) {
-                AbstractProject nearest = AbstractProject.findNearest(parentJobName);
-                throw new ResolvedFailedException(Messages.CloneWorkspaceSCM_NoSuchJob(parentJobName,nearest.getFullName()));
+            if(h.getItemByFullName(parentJob)==null) {
+                AbstractProject nearest = AbstractProject.findNearest(parentJob);
+                throw new ResolvedFailedException(Messages.CloneWorkspaceSCM_NoSuchJob(parentJob,nearest.getFullName()));
             } else
-                throw new ResolvedFailedException(Messages.CloneWorkspaceSCM_IncorrectJobType(parentJobName));
+                throw new ResolvedFailedException(Messages.CloneWorkspaceSCM_IncorrectJobType(parentJob));
         }
 
         
         AbstractBuild<?,?> b = CloneWorkspaceUtil.getMostRecentBuildForCriteria(job,criteria);
         
         if(b==null)
-            throw new ResolvedFailedException(Messages.CloneWorkspaceSCM_NoBuild(criteria,parentJobName));
+            throw new ResolvedFailedException(Messages.CloneWorkspaceSCM_NoBuild(criteria,parentJob));
 
         WorkspaceSnapshot snapshot = b.getAction(WorkspaceSnapshot.class);
         if(snapshot==null)
-            throw new ResolvedFailedException(Messages.CloneWorkspaceSCM_NoWorkspace(parentJobName,criteria));
+            throw new ResolvedFailedException(Messages.CloneWorkspaceSCM_NoWorkspace(parentJob,criteria));
 
         return new Snapshot(snapshot,b);
     }
@@ -123,9 +143,9 @@ public class CloneWorkspaceSCM extends SCM {
     public boolean checkout(AbstractBuild build, Launcher launcher, FilePath workspace, BuildListener listener, File changelogFile) throws IOException, InterruptedException {
         try {
             workspace.deleteContents();
-
-            Snapshot snapshot = resolve();
-            listener.getLogger().println("Restoring workspace from build #" + snapshot.getParent().getNumber() + " of project " + parentJobName);
+            String parentJob = getParamParentJobName(build);
+            Snapshot snapshot = resolve(parentJob);
+            listener.getLogger().println("Restoring workspace from build #" + snapshot.getParent().getNumber() + " of project " + parentJob);
             snapshot.restoreTo(workspace,listener);
 
             // write out the parent build number file
@@ -161,13 +181,26 @@ public class CloneWorkspaceSCM extends SCM {
 
     @Override
     public ChangeLogParser createChangeLogParser() {
+        AbstractProject<?,?> p = getContainingProject();
+        final AbstractBuild lastBuild = p.getLastBuild();
+        
         try {
-            return resolve().getParent().getProject().getScm().createChangeLogParser();
+            return resolve(getParamParentJobName(lastBuild)).getParent().getProject().getScm().createChangeLogParser();
         } catch (ResolvedFailedException e) {
             return null;
         } 
     }
 
+    private AbstractProject getContainingProject() {
+        for( AbstractProject p : Hudson.getInstance().getAllItems(AbstractProject.class) ) {
+            SCM scm = p.getScm();
+            if (scm != null && scm.getClass() == this.getClass() && this.equals(scm)) {
+                return p;
+            }
+        }
+        return null;
+    }
+                
     @Override
     public DescriptorImpl getDescriptor() {
         return (DescriptorImpl)super.getDescriptor();
@@ -238,8 +271,10 @@ public class CloneWorkspaceSCM extends SCM {
 
     @Override
     protected PollingResult compareRemoteRevisionWith(AbstractProject<?,?> project, Launcher launcher, FilePath workspace, final TaskListener listener, SCMRevisionState _baseline) throws IOException, InterruptedException {
+        final AbstractBuild lastBuild = project.getLastBuild();
+        String parentJob = getParamParentJobName(lastBuild);
         Hudson h = Hudson.getInstance();
-        AbstractProject<?,?> parentProject = h.getItemByFullName(parentJobName, AbstractProject.class);
+        AbstractProject<?,?> parentProject = h.getItemByFullName(parentJob, AbstractProject.class);
         if (parentProject==null) {
             // Disable this project if the parent project no longer exists or doesn't exist in the first place.
             listener.getLogger().println("The CloneWorkspace parent project for " + project + " does not exist, project will be disabled."); 
@@ -251,7 +286,7 @@ public class CloneWorkspaceSCM extends SCM {
 
         Snapshot s = null;
         try {
-            s = resolve();
+            s = resolve(parentJob);
         } catch (ResolvedFailedException e) {
             listener.getLogger().println(e.getMessage());
             return new PollingResult(baseline, baseline, PollingResult.Change.NONE);
@@ -264,14 +299,14 @@ public class CloneWorkspaceSCM extends SCM {
         }
         else {
             if (s.getParent().getNumber() > baseline.parentBuildNumber) {
-                listener.getLogger().println("Build #" + s.getParent().getNumber() + " of project " + parentJobName
+                listener.getLogger().println("Build #" + s.getParent().getNumber() + " of project " + parentJob
                                              + " is newer than build #" + baseline.parentBuildNumber + ", so a new build of "
                                              + project + " will be run.");
                 return new PollingResult(baseline, new CloneWorkspaceSCMRevisionState(s.getParent().getNumber()), PollingResult.Change.SIGNIFICANT);
             //                return BUILD_NOW;
             }
             else {
-                listener.getLogger().println("Build #" + s.getParent().getNumber() + " of project " + parentJobName
+                listener.getLogger().println("Build #" + s.getParent().getNumber() + " of project " + parentJob
                                              + " is NOT newer than build #" + baseline.parentBuildNumber + ", so no new build of "
                                              + project + " will be run.");
                 return new PollingResult(baseline, baseline, PollingResult.Change.NONE);
