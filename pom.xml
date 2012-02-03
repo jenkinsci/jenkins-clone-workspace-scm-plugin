@@ -33,7 +33,7 @@ THE SOFTWARE.
   <artifactId>clone-workspace-scm</artifactId>
   <packaging>hpi</packaging>
   <name>Jenkins Clone Workspace SCM Plug-in</name>
-  <version>0.4-SNAPSHOT</version>
+  <version>0.4</version>
   <url>http://wiki.jenkins-ci.org/display/JENKINS/Clone+Workspace+SCM+Plugin</url>
   <description>Plugin to archive workspaces from one project and reuse those as SCM sources for other projects.</description>
   
