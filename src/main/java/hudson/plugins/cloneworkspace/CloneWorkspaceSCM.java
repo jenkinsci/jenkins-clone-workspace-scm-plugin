@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2010, Sun Microsystems, Inc., Kohsuke Kawaguchi, Andrew Bayer
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -28,21 +28,16 @@ import hudson.scm.SCM;
 import hudson.scm.ChangeLogParser;
 import hudson.scm.SCMDescriptor;
 import hudson.scm.SCMRevisionState;
-import static hudson.scm.PollingResult.BUILD_NOW;
-import static hudson.scm.PollingResult.NO_CHANGES;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
-import hudson.model.Descriptor;
 import hudson.model.TaskListener;
 import hudson.model.ParametersAction;
 import hudson.model.BuildListener;
 import hudson.model.Hudson;
 import hudson.model.Result;
-import hudson.model.PermalinkProjectAction.Permalink;
 import hudson.Launcher;
 import hudson.FilePath;
 import hudson.WorkspaceSnapshot;
-import hudson.PermalinkList;
 import hudson.Extension;
 import static hudson.Util.fixEmptyAndTrim;
 
@@ -52,17 +47,17 @@ import java.io.Serializable;
 import java.io.FileReader;
 import java.io.BufferedReader;
 import java.io.FileOutputStream;
-import java.io.PrintStream;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.logging.Level;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.logging.Logger;
 
 import net.sf.json.JSONObject;
 
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.DataBoundConstructor;
+
+import hudson.fsp.WorkspaceSnapshotSCM;
 
 /**
  * {@link SCM} that inherits the workspace from another build through {@link WorkspaceSnapshot}
@@ -76,7 +71,7 @@ public class CloneWorkspaceSCM extends SCM {
      * The job name from which we inherit the workspace.
      */
     public String parentJobName;
-    
+
     /**
      * The criteria by which to choose the build to inherit from.
      * Can be "Any" (meaning most recent completed build), "Not Failed" (meaning most recent unstable/stable build),
@@ -106,8 +101,8 @@ public class CloneWorkspaceSCM extends SCM {
 
         return original;
     }
-        
-    
+
+
     /**
      * Obtains the {@link WorkspaceSnapshot} object that this {@link SCM} points to,
      * or throws {@link ResolvedFailedException} upon failing.
@@ -126,9 +121,9 @@ public class CloneWorkspaceSCM extends SCM {
                 throw new ResolvedFailedException(Messages.CloneWorkspaceSCM_IncorrectJobType(parentJob));
         }
 
-        
+
         AbstractBuild<?,?> b = CloneWorkspaceUtil.getMostRecentBuildForCriteria(job,criteria);
-        
+
         if(b==null)
             throw new ResolvedFailedException(Messages.CloneWorkspaceSCM_NoBuild(criteria,parentJob));
 
@@ -155,7 +150,7 @@ public class CloneWorkspaceSCM extends SCM {
             } finally {
                 w.close();
             }
-            
+
             return calcChangeLog(snapshot.getParent(), changelogFile, listener);
         } catch (ResolvedFailedException e) {
             listener.error(e.getMessage()); // stack trace is meaningless
@@ -183,12 +178,12 @@ public class CloneWorkspaceSCM extends SCM {
     public ChangeLogParser createChangeLogParser() {
         AbstractProject<?,?> p = getContainingProject();
         final AbstractBuild lastBuild = p.getLastBuild();
-        
+
         try {
             return resolve(getParamParentJobName(lastBuild)).getParent().getProject().getScm().createChangeLogParser();
         } catch (ResolvedFailedException e) {
             return null;
-        } 
+        }
     }
 
     private AbstractProject getContainingProject() {
@@ -200,7 +195,7 @@ public class CloneWorkspaceSCM extends SCM {
         }
         return null;
     }
-                
+
     @Override
     public DescriptorImpl getDescriptor() {
         return (DescriptorImpl)super.getDescriptor();
@@ -210,7 +205,7 @@ public class CloneWorkspaceSCM extends SCM {
         return new File(b.getRootDir(),"cloneWorkspaceParent.txt");
     }
 
-    
+
     /**
      * Reads the parent build file of the specified build (or the closest, if the flag is so specified.)
      *
@@ -227,7 +222,7 @@ public class CloneWorkspaceSCM extends SCM {
         // If the build itself is null, just return the default.
         if (build==null)
             return parentBuildNumber;
-            
+
         if (findClosest) {
             for (AbstractBuild<?,?> b=build; b!=null; b=b.getPreviousBuild()) {
                 if(getParentBuildFile(b).exists()) {
@@ -236,7 +231,7 @@ public class CloneWorkspaceSCM extends SCM {
                 }
             }
         }
-        
+
         {// read the parent build file of the build
             File file = getParentBuildFile(build);
             if(!file.exists())
@@ -277,7 +272,7 @@ public class CloneWorkspaceSCM extends SCM {
         AbstractProject<?,?> parentProject = h.getItemByFullName(parentJob, AbstractProject.class);
         if (parentProject==null) {
             // Disable this project if the parent project no longer exists or doesn't exist in the first place.
-            listener.getLogger().println("The CloneWorkspace parent project for " + project + " does not exist, project will be disabled."); 
+            listener.getLogger().println("The CloneWorkspace parent project for " + project + " does not exist, project will be disabled.");
             project.makeDisabled(true);
             return new PollingResult(_baseline, _baseline, PollingResult.Change.NONE);
         }
@@ -315,7 +310,7 @@ public class CloneWorkspaceSCM extends SCM {
         }
     }
 
-        
+
 
     @Extension
     public static class DescriptorImpl extends SCMDescriptor<CloneWorkspaceSCM> {
@@ -329,21 +324,20 @@ public class CloneWorkspaceSCM extends SCM {
             return Messages.CloneWorkspaceSCM_DisplayName();
         }
 
-        
+
         @Override
         public SCM newInstance(StaplerRequest req, JSONObject formData) throws FormException {
             return req.bindJSON(CloneWorkspaceSCM.class, formData);
         }
 
-        public List<String> getEligibleParents() {
-            List<String> parentNames = new ArrayList<String>();
-            
-            for (AbstractProject p : Hudson.getInstance().getItems(AbstractProject.class)) {
+        public Map<String,String> getEligibleParents() {
+            final Map<String, String> parentNames = new LinkedHashMap<String, String>();
+            for (final AbstractProject<?,?> p : Hudson.getInstance().getItems(AbstractProject.class)) {
                 if (p.getPublishersList().get(CloneWorkspacePublisher.class) != null) {
-                    parentNames.add(p.getDisplayName());
+                    parentNames.put(p.getName(), p.getDisplayName());
                 }
             }
-            
+
             return parentNames;
         }
 
@@ -360,7 +354,7 @@ public class CloneWorkspaceSCM extends SCM {
         private static final long serialVersionUID = 1L;
     }
 
- 
+
     /**
      * {@link Exception} indicating that the resolution of the job/build failed.
      */

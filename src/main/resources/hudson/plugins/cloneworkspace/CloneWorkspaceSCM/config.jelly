@@ -27,7 +27,7 @@ THE SOFTWARE.
     <select name="parentJobName">
       <j:if test="${!empty(descriptor.getEligibleParents())}">
         <j:forEach var="parentProject" items="${descriptor.getEligibleParents()}">
-          <f:option value="${parentProject}" selected="${scm.parentJobName==parentProject}">${parentProject}</f:option>
+          <f:option value="${parentProject.key}" selected="${scm.parentJobName==parentProject.key}">${parentProject.value}</f:option>
         </j:forEach>
       </j:if>
     </select>
