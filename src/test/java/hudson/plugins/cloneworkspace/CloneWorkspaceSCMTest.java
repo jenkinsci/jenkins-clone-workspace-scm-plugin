@@ -27,9 +27,9 @@ import hudson.FilePath;
 
 import hudson.model.FreeStyleProject;
 import hudson.model.FreeStyleBuild;
-import hudson.model.Label;
 import hudson.model.Result;
 import hudson.model.User;
+import hudson.model.labels.LabelAtom;
 import hudson.scm.ChangeLogSet;
 import hudson.scm.ChangeLogSet.Entry;
 
@@ -62,12 +62,12 @@ public class CloneWorkspaceSCMTest extends HudsonTestCase {
 
     public void testSlaveCloning() throws Exception {
         FreeStyleProject parentJob = createCloneParentProject();
-        parentJob.setAssignedLabel(createSlave(new Label("parentSlave")).getSelfLabel());
+        parentJob.setAssignedLabel(createSlave(new LabelAtom("parentSlave")).getSelfLabel());
 
         buildAndAssertSuccess(parentJob);
 
         FreeStyleProject childJob = createCloneChildProject();
-        childJob.setAssignedLabel(createSlave(new Label("childSlave")).getSelfLabel());
+        childJob.setAssignedLabel(createSlave(new LabelAtom("childSlave")).getSelfLabel());
         buildAndAssertSuccess(childJob);
 
         FreeStyleBuild fb = childJob.getLastBuild();

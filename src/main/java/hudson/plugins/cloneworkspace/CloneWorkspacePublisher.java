@@ -166,7 +166,11 @@ public class CloneWorkspacePublisher extends Recorder {
                 }
                 // This means we found something.
                 if((includeMsg==null) && (excludeMsg==null)) {
-                    DirScanner globScanner = new DirScanner.Glob(realIncludeGlob, realExcludeGlob);
+                    // See https://issues.jenkins-ci.org/browse/JENKINS-13165 re: Ant 1.8.2+ excluding SCM files by default.
+                    // Don't use any defaults from Ant, and always let user specify (realExcludeGlob)
+                    // WARNING: this assumes Jenkins 1.463 at least.
+                    boolean useDefaultExcludes = false;
+                    DirScanner globScanner = new DirScanner.Glob(realIncludeGlob, realExcludeGlob, useDefaultExcludes);
                     build.addAction(snapshot(build, ws, globScanner, listener, archiveMethod));
 
                     // Find the next most recent build meeting this criteria with an archived snapshot.
