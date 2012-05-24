@@ -87,12 +87,17 @@ public class CloneWorkspacePublisher extends Recorder {
      */
     private final String archiveMethod;
 
+    /**
+     * If true, don't use the Ant default file glob excludes.
+     */
+    private final boolean overrideDefaultExcludes;
     @DataBoundConstructor
-    public CloneWorkspacePublisher(String workspaceGlob, String workspaceExcludeGlob, String criteria, String archiveMethod) {
+    public CloneWorkspacePublisher(String workspaceGlob, String workspaceExcludeGlob, String criteria, String archiveMethod, boolean overrideDefaultExcludes) {
         this.workspaceGlob = workspaceGlob.trim();
         this.workspaceExcludeGlob = Util.fixEmptyAndTrim(workspaceExcludeGlob);
         this.criteria = criteria;
         this.archiveMethod = archiveMethod;
+        this.overrideDefaultExcludes = overrideDefaultExcludes;
     }
 
     public BuildStepMonitor getRequiredMonitorService() {
@@ -120,6 +125,9 @@ public class CloneWorkspacePublisher extends Recorder {
         return archiveMethod;
     }
 
+    public boolean getOverrideDefaultExcludes() {
+        return overrideDefaultExcludes;
+    }
 
     @Override
     public boolean perform(AbstractBuild<?,?> build, Launcher launcher, BuildListener listener) throws InterruptedException {
@@ -166,7 +174,7 @@ public class CloneWorkspacePublisher extends Recorder {
                 }
                 // This means we found something.
                 if((includeMsg==null) && (excludeMsg==null)) {
-                    DirScanner globScanner = new DirScanner.Glob(realIncludeGlob, realExcludeGlob);
+                    DirScanner globScanner = new DirScanner.Glob(realIncludeGlob, realExcludeGlob, !overrideDefaultExcludes);
                     build.addAction(snapshot(build, ws, globScanner, listener, archiveMethod));
 
                     // Find the next most recent build meeting this criteria with an archived snapshot.

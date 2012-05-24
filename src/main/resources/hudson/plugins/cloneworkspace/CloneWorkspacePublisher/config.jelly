@@ -42,4 +42,7 @@ THE SOFTWARE.
       <f:option value="ZIP" selected='${instance.archiveMethod=="ZIP"}'>${%Zipped}</f:option>
     </select>
   </f:entry>
+  <f:entry title="${%Override Default Ant Excludes}" field="overrideDefaultExcludes">
+    <f:checkbox />
+  </f:entry>
 </j:jelly>

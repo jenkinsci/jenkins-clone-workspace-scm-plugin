@@ -62,12 +62,12 @@ public class CloneWorkspaceSCMTest extends HudsonTestCase {
 
     public void testSlaveCloning() throws Exception {
         FreeStyleProject parentJob = createCloneParentProject();
-        parentJob.setAssignedLabel(createSlave(new Label("parentSlave")).getSelfLabel());
+        parentJob.setAssignedLabel(createSlave(Label.get("parentSlave")).getSelfLabel());
 
         buildAndAssertSuccess(parentJob);
 
         FreeStyleProject childJob = createCloneChildProject();
-        childJob.setAssignedLabel(createSlave(new Label("childSlave")).getSelfLabel());
+        childJob.setAssignedLabel(createSlave(Label.get("childSlave")).getSelfLabel());
         buildAndAssertSuccess(childJob);
 
         FreeStyleBuild fb = childJob.getLastBuild();
@@ -78,7 +78,7 @@ public class CloneWorkspaceSCMTest extends HudsonTestCase {
     }
 
     public void testGlobCloning() throws Exception {
-        FreeStyleProject parentJob = createCloneParentProject(new CloneWorkspacePublisher("moduleB/**/*", null, "Any", "ZIP"));
+        FreeStyleProject parentJob = createCloneParentProject(new CloneWorkspacePublisher("moduleB/**/*", null, "Any", "ZIP", false));
         
         buildAndAssertSuccess(parentJob);
 
@@ -133,7 +133,7 @@ public class CloneWorkspaceSCMTest extends HudsonTestCase {
     }
 
     public void testNotFailedParentCriteriaDoesNotArchiveFailure() throws Exception {
-        FreeStyleProject parentJob = createCloneParentProject(new CloneWorkspacePublisher("**/*", null, "Not Failed", "ZIP"));
+        FreeStyleProject parentJob = createCloneParentProject(new CloneWorkspacePublisher("**/*", null, "Not Failed", "ZIP", false));
 
         parentJob.getBuildersList().add(new FailureBuilder());
         
@@ -191,7 +191,7 @@ public class CloneWorkspaceSCMTest extends HudsonTestCase {
     }
     
     private FreeStyleProject createCloneParentProject() throws Exception {
-        return createCloneParentProject(new CloneWorkspacePublisher("**/*", null, "Any", "zip"));
+        return createCloneParentProject(new CloneWorkspacePublisher("**/*", null, "Any", "zip", false));
     }
     
     private FreeStyleProject createCloneParentProject(CloneWorkspacePublisher cwp) throws Exception {
