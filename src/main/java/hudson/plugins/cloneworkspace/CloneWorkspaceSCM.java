@@ -23,6 +23,8 @@
  */
 package hudson.plugins.cloneworkspace;
 
+import hudson.matrix.MatrixConfiguration;
+import hudson.matrix.MatrixProject;
 import hudson.scm.PollingResult;
 import hudson.scm.SCM;
 import hudson.scm.ChangeLogParser;
@@ -340,7 +342,14 @@ public class CloneWorkspaceSCM extends SCM {
             
             for (AbstractProject p : Hudson.getInstance().getItems(AbstractProject.class)) {
                 if (p.getPublishersList().get(CloneWorkspacePublisher.class) != null) {
-                    parentNames.add(p.getDisplayName());
+                    if (p instanceof MatrixProject) {
+                        MatrixProject mp = (MatrixProject) p;
+                        for (MatrixConfiguration configuration : mp.getActiveConfigurations()) {
+                            parentNames.add(configuration.getFullName());
+                        }
+                    } else {
+                        parentNames.add(p.getDisplayName());
+                    }
                 }
             }
             
