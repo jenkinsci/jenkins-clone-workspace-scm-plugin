@@ -182,6 +182,10 @@ public class CloneWorkspaceSCM extends SCM {
     @Override
     public ChangeLogParser createChangeLogParser() {
         AbstractProject<?,?> p = getContainingProject();
+        if (p == null) {
+            return null;
+        }
+
         final AbstractBuild lastBuild = p.getLastBuild();
         
         try {
