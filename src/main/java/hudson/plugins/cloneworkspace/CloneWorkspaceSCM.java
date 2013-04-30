@@ -340,7 +340,7 @@ public class CloneWorkspaceSCM extends SCM {
             
             for (AbstractProject p : Hudson.getInstance().getAllItems(AbstractProject.class)) {
                 if (p.getPublishersList().get(CloneWorkspacePublisher.class) != null) {
-                    parentNames.add(p.getDisplayName());
+                    parentNames.add(p.getFullName());
                 }
             }
             
