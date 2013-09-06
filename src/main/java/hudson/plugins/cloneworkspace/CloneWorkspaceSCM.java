@@ -28,6 +28,7 @@ import hudson.matrix.MatrixProject;
 import hudson.scm.PollingResult;
 import hudson.scm.SCM;
 import hudson.scm.ChangeLogParser;
+import hudson.scm.NullChangeLogParser;
 import hudson.scm.SCMDescriptor;
 import hudson.scm.SCMRevisionState;
 import static hudson.scm.PollingResult.BUILD_NOW;
@@ -184,8 +185,11 @@ public class CloneWorkspaceSCM extends SCM {
     @Override
     public ChangeLogParser createChangeLogParser() {
         AbstractProject<?,?> p = getContainingProject();
-        final AbstractBuild lastBuild = p.getLastBuild();
-        
+        AbstractBuild lastBuild = null;
+        if (p != null) {
+            lastBuild = p.getLastBuild();
+        }
+
         try {
             return resolve(getParamParentJobName(lastBuild)).getParent().getProject().getScm().createChangeLogParser();
         } catch (ResolvedFailedException e) {
