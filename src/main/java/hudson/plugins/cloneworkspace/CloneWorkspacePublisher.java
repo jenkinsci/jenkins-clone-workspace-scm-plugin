@@ -225,6 +225,15 @@ public class CloneWorkspacePublisher extends Recorder {
             }
 
             return new WorkspaceSnapshotZip();
+        } else if (archiveMethod.equals("TARONLY")) {
+            OutputStream os = new BufferedOutputStream(FilePath.TarCompression.NONE.compress(new FileOutputStream(wss)));
+            try {
+                ws.tar(os, scanner);
+            } finally {
+                os.close();
+            }
+
+            return new WorkspaceSnapshotTarOnly();
         } else {
             OutputStream os = new BufferedOutputStream(FilePath.TarCompression.GZIP.compress(new FileOutputStream(wss)));
             try {
@@ -241,6 +250,13 @@ public class CloneWorkspacePublisher extends Recorder {
         public void restoreTo(AbstractBuild<?,?> owner, FilePath dst, TaskListener listener) throws IOException, InterruptedException {
             File wss = new File(owner.getRootDir(), CloneWorkspaceUtil.getFileNameForMethod("TAR"));
             new FilePath(wss).untar(dst, FilePath.TarCompression.GZIP);
+        }
+    }
+
+    public static final class WorkspaceSnapshotTarOnly extends WorkspaceSnapshot {
+        public void restoreTo(AbstractBuild<?,?> owner, FilePath dst, TaskListener listener) throws IOException, InterruptedException {
+            File wss = new File(owner.getRootDir(), CloneWorkspaceUtil.getFileNameForMethod("TARONLY"));
+            new FilePath(wss).untar(dst, FilePath.TarCompression.NONE);
         }
     }
 

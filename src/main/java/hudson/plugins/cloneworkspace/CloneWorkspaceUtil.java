@@ -97,6 +97,8 @@ public class CloneWorkspaceUtil {
     {
         if ("ZIP".equals(method)) {
             return "workspace.zip";
+        } else if ("TARONLY".equals(method)) {
+            return "workspace.tar";
         } else {
             return "workspace.tar.gz";
         }

@@ -39,6 +39,7 @@ THE SOFTWARE.
   <f:entry title="${%Archive method}" help="/plugin/clone-workspace-scm/archiveMethod.html">
     <select name="archiveMethod">
       <f:option value="TAR" selected='${instance.archiveMethod=="TAR"}'>${%Gzipped tar}</f:option>
+      <f:option value="TARONLY" selected='${instance.archiveMethod=="TARONLY"}'>${%Tarball}</f:option>
       <f:option value="ZIP" selected='${instance.archiveMethod=="ZIP"}'>${%Zipped}</f:option>
     </select>
   </f:entry>
