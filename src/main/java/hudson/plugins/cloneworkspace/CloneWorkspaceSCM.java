@@ -35,6 +35,7 @@ import static hudson.scm.PollingResult.BUILD_NOW;
 import static hudson.scm.PollingResult.NO_CHANGES;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
+import hudson.model.AutoCompletionCandidates;
 import hudson.model.Descriptor;
 import hudson.model.TaskListener;
 import hudson.model.ParametersAction;
@@ -48,6 +49,8 @@ import hudson.WorkspaceSnapshot;
 import hudson.PermalinkList;
 import hudson.Extension;
 import static hudson.Util.fixEmptyAndTrim;
+import hudson.Util;
+import hudson.util.FormValidation;
 
 import java.io.IOException;
 import java.io.File;
@@ -66,6 +69,7 @@ import net.sf.json.JSONObject;
 
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
 
 /**
  * {@link SCM} that inherits the workspace from another build through {@link WorkspaceSnapshot}
@@ -341,23 +345,41 @@ public class CloneWorkspaceSCM extends SCM {
             return req.bindJSON(CloneWorkspaceSCM.class, formData);
         }
 
-        public List<String> getEligibleParents() {
-            List<String> parentNames = new ArrayList<String>();
-            
-            for (AbstractProject p : Hudson.getInstance().getAllItems(AbstractProject.class)) {
+        public AutoCompletionCandidates doAutoCompleteParentJobName() {
+            final AutoCompletionCandidates ac = new AutoCompletionCandidates();
+            for (final AbstractProject<?, ?> p : Hudson.getInstance().getAllItems(AbstractProject.class)) {
                 if (p.getPublishersList().get(CloneWorkspacePublisher.class) != null) {
                     if (p instanceof MatrixProject) {
-                        MatrixProject mp = (MatrixProject) p;
-                        for (MatrixConfiguration configuration : mp.getActiveConfigurations()) {
-                            parentNames.add(configuration.getFullName());
+                        final MatrixProject mp = (MatrixProject) p;
+                        for (final MatrixConfiguration configuration : mp.getActiveConfigurations()) {
+                            ac.add(configuration.getFullName());
                         }
                     } else {
-                        parentNames.add(p.getFullName());
+                        ac.add(p.getFullName());
                     }
                 }
             }
-            
-            return parentNames;
+
+            return ac;
+        }
+
+        public FormValidation doCheckParentJobName(@QueryParameter String parentJobName) {
+            if ((parentJobName = Util.fixEmptyAndTrim(parentJobName)) == null) {
+                return FormValidation.validateRequired(parentJobName);
+            }
+
+            AbstractProject<?, ?> parentJob = Hudson.getInstance().getItemByFullName(parentJobName, AbstractProject.class);
+            if (parentJob == null) {
+                final AbstractProject<?, ?> nearest = AbstractProject.findNearest(parentJobName);
+                return FormValidation.error(Messages.CloneWorkspaceSCM_NoSuchJob(parentJobName, nearest.getFullName()));
+            }
+
+            final CloneWorkspacePublisher publisher = parentJob.getPublishersList().get(CloneWorkspacePublisher.class);
+            if (publisher == null) {
+                return FormValidation.error(Messages.CloneWorkspaceSCM_IncorrectJob(parentJobName, Messages.CloneWorkspacePublisher_DisplayName()));
+            }
+
+            return FormValidation.ok();
         }
 
     }

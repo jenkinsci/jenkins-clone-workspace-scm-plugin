@@ -24,13 +24,7 @@ THE SOFTWARE.
 
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
   <f:entry title="${%Parent Project}" help="/plugin/clone-workspace-scm/parentJobName.html">
-    <select name="parentJobName">
-      <j:if test="${!empty(descriptor.getEligibleParents())}">
-        <j:forEach var="parentProject" items="${descriptor.getEligibleParents()}">
-          <f:option value="${parentProject}" selected="${scm.parentJobName==parentProject}">${parentProject}</f:option>
-        </j:forEach>
-      </j:if>
-    </select>
+    <f:textbox field="parentJobName" />
   </f:entry>
 
   <f:entry title="${%Criteria for parent build}" help="/plugin/clone-workspace-scm/childCriteria.html">
