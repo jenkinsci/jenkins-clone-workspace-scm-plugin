@@ -48,6 +48,7 @@ import hudson.WorkspaceSnapshot;
 import hudson.PermalinkList;
 import hudson.Extension;
 import static hudson.Util.fixEmptyAndTrim;
+import org.apache.commons.collections.ListUtils;
 
 import java.io.IOException;
 import java.io.File;
@@ -63,6 +64,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import net.sf.json.JSONObject;
+import hudson.model.ParameterDefinition;
+import hudson.model.ParametersDefinitionProperty;
 
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.DataBoundConstructor;
