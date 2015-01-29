@@ -207,6 +207,18 @@ public class CloneWorkspaceSCM extends SCM {
         return null;
     }
                 
+    public List<String> getParameterList() {
+        ArrayList<String> list = new ArrayList<String>();
+        ParametersDefinitionProperty prop = (ParametersDefinitionProperty) getContainingProject().getProperty(ParametersDefinitionProperty.class);
+        if (prop != null) {
+            for (ParameterDefinition param : prop.getParameterDefinitions())
+                list.add("$" + param.getName());
+        }
+        return list;
+    }
+     public List<String> getParentAndParamList() {
+         return ListUtils.union(getDescriptor().getEligibleParents(), getParameterList());
+     }
     @Override
     public DescriptorImpl getDescriptor() {
         return (DescriptorImpl)super.getDescriptor();

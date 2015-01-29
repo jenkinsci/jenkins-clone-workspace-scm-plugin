@@ -21,12 +21,11 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -->
-
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-  <f:entry title="${%Parent Project}" help="/plugin/clone-workspace-scm/parentJobName.html">
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+    <f:entry title="${%Parent job selection}" help="/plugin/clone-workspace-scm/parentJobName.html">
     <select name="parentJobName">
       <j:if test="${!empty(descriptor.getEligibleParents())}">
-        <j:forEach var="parentProject" items="${descriptor.getEligibleParents()}">
+                <j:forEach var="parentProject" items="${scm.getParentAndParamList()}">
           <f:option value="${parentProject}" selected="${scm.parentJobName==parentProject}">${parentProject}</f:option>
         </j:forEach>
       </j:if>
