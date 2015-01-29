@@ -48,6 +48,7 @@ import hudson.WorkspaceSnapshot;
 import hudson.PermalinkList;
 import hudson.Extension;
 import static hudson.Util.fixEmptyAndTrim;
+import org.apache.commons.collections.ListUtils;
 
 import java.io.IOException;
 import java.io.File;
@@ -63,6 +64,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import net.sf.json.JSONObject;
+import hudson.model.ParameterDefinition;
+import hudson.model.ParametersDefinitionProperty;
 
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -207,6 +210,18 @@ public class CloneWorkspaceSCM extends SCM {
         return null;
     }
                 
+    public List<String> getParameterList() {
+        ArrayList<String> list = new ArrayList<String>();
+        ParametersDefinitionProperty prop = (ParametersDefinitionProperty) getContainingProject().getProperty(ParametersDefinitionProperty.class);
+        if (prop != null) {
+            for (ParameterDefinition param : prop.getParameterDefinitions())
+                list.add("$" + param.getName());
+        }
+        return list;
+    }
+     public List<String> getParentAndParamList() {
+         return ListUtils.union(getDescriptor().getEligibleParents(), getParameterList());
+     }
     @Override
     public DescriptorImpl getDescriptor() {
         return (DescriptorImpl)super.getDescriptor();
