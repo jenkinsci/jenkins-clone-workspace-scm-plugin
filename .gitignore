@@ -1,5 +1,9 @@
 *.iml
-*.ipr
 *.iws
+*.ipr
+
+.idea
+
 target
+out
 work
