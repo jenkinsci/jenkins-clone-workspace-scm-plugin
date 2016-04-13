@@ -78,7 +78,7 @@ public class CloneWorkspaceSCMTest extends HudsonTestCase {
     }
 
     public void testGlobCloning() throws Exception {
-        FreeStyleProject parentJob = createCloneParentProject(new CloneWorkspacePublisher("moduleB/**/*", null, "Any", "ZIP", false));
+        FreeStyleProject parentJob = createCloneParentProject(new CloneWorkspacePublisher("moduleB/**/*", null, "Any", "ZIP", false, false));
         
         buildAndAssertSuccess(parentJob);
 
@@ -91,6 +91,54 @@ public class CloneWorkspaceSCMTest extends HudsonTestCase {
 
         assertFalse("pom.xml should NOT exist", ws.child("pom.xml").exists());
         assertTrue("moduleB/pom.xml should exist", ws.child("moduleB").child("pom.xml").exists());
+    }
+
+    public void testCompleteCloningZIP() throws Exception {
+        FilePath ws = completeCloningBootstrap("**", "ZIP", true);
+        assertTrue("level1_2 should exist", ws.child("level1_2").exists());
+        assertTrue("level1_1/level2_1 should exist", ws.child("level1_1").child("level2_1").exists());
+    }
+
+    public void testCompleteCloningTAR() throws Exception {
+        FilePath ws = completeCloningBootstrap("**", "TAR", true);
+        assertTrue("level1_2 should exist", ws.child("level1_2").exists());
+        assertTrue("level1_1/level2_1 should exist", ws.child("level1_1").child("level2_1").exists());
+    }
+
+    public void testNotCompleteCloningZIP() throws Exception {
+        FilePath ws = completeCloningBootstrap("**", "ZIP", false);
+        assertFalse("level1_2 should NOT exist", ws.child("level1_2").exists());
+        assertTrue("test.txt should exist", ws.child("test.txt").exists());
+    }
+
+    public void testNotCompleteCloningTAR() throws Exception {
+        FilePath ws = completeCloningBootstrap("**", "TAR", false);
+        assertFalse("level1_2 should NOT exist", ws.child("level1_2").exists());
+        assertTrue("test.txt should exist", ws.child("test.txt").exists());
+    }
+
+    public void testCompleteCloningSlaveZIP() throws Exception {
+        FilePath ws = completeCloningBootstrapSlave("**", "ZIP", true);
+        assertTrue("level1_2 should exist", ws.child("level1_2").exists());
+        assertTrue("level1_1/level2_1 should exist", ws.child("level1_1").child("level2_1").exists());
+    }
+
+    public void testCompleteCloningSlaveTAR() throws Exception {
+        FilePath ws = completeCloningBootstrapSlave("**", "TAR", true);
+        assertTrue("level1_2 should exist", ws.child("level1_2").exists());
+        assertTrue("level1_1/level2_1 should exist", ws.child("level1_1").child("level2_1").exists());
+    }
+
+    public void testNotCompleteCloningSlaveZIP() throws Exception {
+        FilePath ws = completeCloningBootstrapSlave("**", "ZIP", false);
+        assertFalse("level1_2 should NOT exist", ws.child("level1_2").exists());
+        assertTrue("test.txt should exist", ws.child("test.txt").exists());
+    }
+
+    public void testNotCompleteCloningSlaveTAR() throws Exception {
+        FilePath ws = completeCloningBootstrapSlave("**", "TAR", false);
+        assertFalse("level1_2 should NOT exist", ws.child("level1_2").exists());
+        assertTrue("test.txt should exist", ws.child("test.txt").exists());
     }
 
     public void testNoParentCloningFails() throws Exception {
@@ -133,7 +181,7 @@ public class CloneWorkspaceSCMTest extends HudsonTestCase {
     }
 
     public void testNotFailedParentCriteriaDoesNotArchiveFailure() throws Exception {
-        FreeStyleProject parentJob = createCloneParentProject(new CloneWorkspacePublisher("**/*", null, "Not Failed", "ZIP", false));
+        FreeStyleProject parentJob = createCloneParentProject(new CloneWorkspacePublisher("**/*", null, "Not Failed", "ZIP", false, false));
 
         parentJob.getBuildersList().add(new FailureBuilder());
         
@@ -191,7 +239,7 @@ public class CloneWorkspaceSCMTest extends HudsonTestCase {
     }
     
     private FreeStyleProject createCloneParentProject() throws Exception {
-        return createCloneParentProject(new CloneWorkspacePublisher("**/*", null, "Any", "zip", false));
+        return createCloneParentProject(new CloneWorkspacePublisher("**/*", null, "Any", "zip", false, false));
     }
     
     private FreeStyleProject createCloneParentProject(CloneWorkspacePublisher cwp) throws Exception {
@@ -202,5 +250,44 @@ public class CloneWorkspaceSCMTest extends HudsonTestCase {
 
         return parentJob;
     }
-        
+
+    /* Complete cloning */
+
+    private FilePath completeCloningBootstrap(String includes, String archiveMethod, boolean copyEmptyDirectories) throws Exception {
+        FreeStyleProject parentJob = createCloneCompleteParentProject(new CloneWorkspacePublisher(includes, null, "Any", archiveMethod, false, copyEmptyDirectories));
+
+        buildAndAssertSuccess(parentJob);
+
+        FreeStyleProject childJob = createCloneChildProject();
+        buildAndAssertSuccess(childJob);
+
+        FreeStyleBuild fb = childJob.getLastBuild();
+
+        return fb.getWorkspace();
+    }
+
+    private FilePath completeCloningBootstrapSlave(String includes, String archiveMethod, boolean copyEmptyDirectories) throws Exception {
+        FreeStyleProject parentJob = createCloneCompleteParentProject(new CloneWorkspacePublisher(includes, null, "Any", archiveMethod, false, copyEmptyDirectories));
+        parentJob.setAssignedLabel(createSlave(Label.get("parentSlave")).getSelfLabel());
+
+        buildAndAssertSuccess(parentJob);
+
+        FreeStyleProject childJob = createCloneChildProject();
+        childJob.setAssignedLabel(createSlave(Label.get("childSlave")).getSelfLabel());
+        buildAndAssertSuccess(childJob);
+
+        FreeStyleBuild fb = childJob.getLastBuild();
+
+        return fb.getWorkspace();
+    }
+
+    private FreeStyleProject createCloneCompleteParentProject(CloneWorkspacePublisher cwp) throws Exception {
+        FreeStyleProject parentJob = createFreeStyleProject("parentJob");
+        parentJob.setScm(new ExtractResourceWithChangesSCM(getClass().getResource("empty-directories.zip"),
+                                                           getClass().getResource("empty-directories-changes.zip")));
+        parentJob.getPublishersList().add(cwp);
+
+        return parentJob;
+    }
+
 }
