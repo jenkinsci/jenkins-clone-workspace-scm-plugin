@@ -49,13 +49,13 @@ import net.sf.json.JSONObject;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 
 /**
  * {@link Recorder} that archives a build's workspace (or subset thereof) as a {@link WorkspaceSnapshot},
@@ -91,13 +91,20 @@ public class CloneWorkspacePublisher extends Recorder {
      * If true, don't use the Ant default file glob excludes.
      */
     private final boolean overrideDefaultExcludes;
+
+    /**
+     * If true, empty directories will be archived
+     */
+    private final boolean copyEmptyDirectories;
+
     @DataBoundConstructor
-    public CloneWorkspacePublisher(String workspaceGlob, String workspaceExcludeGlob, String criteria, String archiveMethod, boolean overrideDefaultExcludes) {
+    public CloneWorkspacePublisher(String workspaceGlob, String workspaceExcludeGlob, String criteria, String archiveMethod, boolean overrideDefaultExcludes, boolean copyEmptyDirectories) {
         this.workspaceGlob = workspaceGlob.trim();
         this.workspaceExcludeGlob = Util.fixEmptyAndTrim(workspaceExcludeGlob);
         this.criteria = criteria;
         this.archiveMethod = archiveMethod;
         this.overrideDefaultExcludes = overrideDefaultExcludes;
+        this.copyEmptyDirectories = copyEmptyDirectories;
     }
 
     public BuildStepMonitor getRequiredMonitorService() {
@@ -127,6 +134,10 @@ public class CloneWorkspacePublisher extends Recorder {
 
     public boolean getOverrideDefaultExcludes() {
         return overrideDefaultExcludes;
+    }
+
+    public boolean isCopyEmptyDirectories() {
+        return copyEmptyDirectories;
     }
 
     @Override
@@ -174,8 +185,19 @@ public class CloneWorkspacePublisher extends Recorder {
                 }
                 // This means we found something.
                 if((includeMsg==null) && (excludeMsg==null)) {
-                    DirScanner globScanner = new DirScanner.Glob(realIncludeGlob, realExcludeGlob, !overrideDefaultExcludes);
-                    build.addAction(snapshot(build, ws, globScanner, listener, archiveMethod));
+                    DirScanner scanner;
+
+                    // Choose between FileFilter-based DirScanner or Glob DirScanner
+                    // The first one copy empty directories, the second which is the default one, does not.
+                    if(copyEmptyDirectories) {
+                        FileFilter fileFilter = CloneWorkspaceCompleteDirScanner.AntToFileFilter(new File(ws.getRemote()), realIncludeGlob, realExcludeGlob, !overrideDefaultExcludes);
+                        scanner = new CloneWorkspaceCompleteDirScanner.CompleteDirScanner(fileFilter);
+                    }
+                    else {
+                        scanner = new DirScanner.Glob(realIncludeGlob, realExcludeGlob, !overrideDefaultExcludes);
+                    }
+
+                    build.addAction(snapshot(build, ws, scanner, listener, archiveMethod));
 
                     // Find the next most recent build meeting this criteria with an archived snapshot.
                     AbstractBuild<?,?> previousArchivedBuild = CloneWorkspaceUtil.getMostRecentBuildForCriteriaWithSnapshot(build.getPreviousBuild(), criteria);
