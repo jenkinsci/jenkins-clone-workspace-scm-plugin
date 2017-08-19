@@ -24,7 +24,6 @@
 package hudson.plugins.cloneworkspace;
 
 import hudson.WorkspaceSnapshot;
-import hudson.FileSystemProvisioner;
 import hudson.Util;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -53,7 +52,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 
@@ -100,6 +98,7 @@ public class CloneWorkspacePublisher extends Recorder {
         this.overrideDefaultExcludes = overrideDefaultExcludes;
     }
 
+    @Override
     public BuildStepMonitor getRequiredMonitorService() {
         return BuildStepMonitor.NONE;
     }
@@ -238,6 +237,7 @@ public class CloneWorkspacePublisher extends Recorder {
     }
 
     public static final class WorkspaceSnapshotTar extends WorkspaceSnapshot {
+        @Override
         public void restoreTo(AbstractBuild<?,?> owner, FilePath dst, TaskListener listener) throws IOException, InterruptedException {
             File wss = new File(owner.getRootDir(), CloneWorkspaceUtil.getFileNameForMethod("TAR"));
             new FilePath(wss).untar(dst, FilePath.TarCompression.GZIP);
@@ -245,6 +245,7 @@ public class CloneWorkspacePublisher extends Recorder {
     }
 
     public static final class WorkspaceSnapshotZip extends WorkspaceSnapshot {
+        @Override
         public void restoreTo(AbstractBuild<?,?> owner, FilePath dst, TaskListener listener) throws IOException, InterruptedException {
             File wss = new File(owner.getRootDir(), CloneWorkspaceUtil.getFileNameForMethod("ZIP"));
             new FilePath(wss).unzip(dst);
@@ -257,12 +258,17 @@ public class CloneWorkspacePublisher extends Recorder {
             super(CloneWorkspacePublisher.class);
         }
 
+        @Override
         public String getDisplayName() {
             return Messages.CloneWorkspacePublisher_DisplayName();
         }
 
         /**
          * Performs on-the-fly validation on the file mask wildcard.
+         * @param project project
+         * @param value value
+         * @return value
+         * @throws java.io.IOException Exception
          */
         public FormValidation doCheckWorkspaceGlob(@AncestorInPath AbstractProject project, @QueryParameter String value) throws IOException {
             return FilePath.validateFileMask(project.getSomeWorkspace(),value);
@@ -273,6 +279,7 @@ public class CloneWorkspacePublisher extends Recorder {
             return req.bindJSON(CloneWorkspacePublisher.class,formData);
         }
 
+        @Override
         public boolean isApplicable(Class<? extends AbstractProject> jobType) {
             return true;
         }
