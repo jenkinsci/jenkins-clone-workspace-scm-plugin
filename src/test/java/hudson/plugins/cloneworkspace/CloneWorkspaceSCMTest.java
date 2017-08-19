@@ -30,12 +30,10 @@ import hudson.model.FreeStyleBuild;
 import hudson.model.Label;
 import hudson.model.Result;
 import hudson.model.User;
-import hudson.scm.ChangeLogSet;
 import hudson.scm.ChangeLogSet.Entry;
 
 import org.jvnet.hudson.test.HudsonTestCase;
 import org.jvnet.hudson.test.ExtractResourceWithChangesSCM;
-import org.jvnet.hudson.test.ExtractChangeLogParser;
 import org.jvnet.hudson.test.FailureBuilder;
 import org.jvnet.hudson.test.UnstableBuilder;
 

@@ -28,24 +28,18 @@ import hudson.matrix.MatrixProject;
 import hudson.scm.PollingResult;
 import hudson.scm.SCM;
 import hudson.scm.ChangeLogParser;
-import hudson.scm.NullChangeLogParser;
 import hudson.scm.SCMDescriptor;
 import hudson.scm.SCMRevisionState;
-import static hudson.scm.PollingResult.BUILD_NOW;
-import static hudson.scm.PollingResult.NO_CHANGES;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
-import hudson.model.Descriptor;
 import hudson.model.TaskListener;
 import hudson.model.ParametersAction;
 import hudson.model.BuildListener;
 import hudson.model.Hudson;
 import hudson.model.Result;
-import hudson.model.PermalinkProjectAction.Permalink;
 import hudson.Launcher;
 import hudson.FilePath;
 import hudson.WorkspaceSnapshot;
-import hudson.PermalinkList;
 import hudson.Extension;
 import static hudson.Util.fixEmptyAndTrim;
 import org.apache.commons.collections.ListUtils;
@@ -56,11 +50,9 @@ import java.io.Serializable;
 import java.io.FileReader;
 import java.io.BufferedReader;
 import java.io.FileOutputStream;
-import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import net.sf.json.JSONObject;
@@ -71,8 +63,6 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
- * {@link SCM} that inherits the workspace from another build through {@link WorkspaceSnapshot}
- * Derived from {@link WorkspaceSnapshotSCM}.
  *
  * @author Kohsuke Kawaguchi
  * @author Andrew Bayer
@@ -99,6 +89,7 @@ public class CloneWorkspaceSCM extends SCM {
     /**
      * Get the parent job name. Process it for parameters if needed.
      *
+     * @param build build
      * @return Parent job name.
      */
     public String getParamParentJobName(AbstractBuild<?, ?> build) {
@@ -120,6 +111,7 @@ public class CloneWorkspaceSCM extends SCM {
      *
      * @param parentJob Processed parent job name.
      * @return never null.
+     * @throws hudson.plugins.cloneworkspace.CloneWorkspaceSCM.ResolvedFailedException Exception
      */
     public Snapshot resolve(String parentJob) throws ResolvedFailedException {
         Hudson h = Hudson.getInstance();
