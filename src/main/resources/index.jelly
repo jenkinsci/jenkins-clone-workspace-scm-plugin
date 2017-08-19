@@ -23,6 +23,7 @@
     THE SOFTWARE.
 
 -->
+<?jelly escape-by-default='true'?>
 <div>
   This plugin makes it possible to archive the workspace from builds of one project and reuse them as the SCM source for another project.
 </div>
