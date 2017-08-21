@@ -27,6 +27,7 @@ import hudson.WorkspaceSnapshot;
 import hudson.model.AbstractProject;
 import hudson.model.AbstractBuild;
 import hudson.model.Result;
+import hudson.model.Run;
 
 /**
  * Utility class for {@link CloneWorkspaceSCM} and {@link CloneWorkspacePublisher}.
@@ -49,6 +50,49 @@ public class CloneWorkspaceUtil {
         return criteriaResult;
     }
 
+    public static Run<?,?> getMostRecentRunForCriteria(AbstractProject<?,?> project, String criteria) {
+        return getMostRecentRunForCriteria(project.getLastBuild(), getResultForCriteria(criteria));
+    }
+    
+    public static Run<?,?> getMostRecentRunForCriteria(AbstractBuild<?,?> baseBuild, String criteria) {
+        return getMostRecentRunForCriteria(baseBuild, getResultForCriteria(criteria));
+    }
+
+    public static Run<?,?> getMostRecentRunForCriteria(Run<?,?> baseBuild, Result criteriaResult) {
+        if ((baseBuild == null)
+            || ((!baseBuild.isBuilding()) && (baseBuild.getResult() != null)
+                && (baseBuild.getResult().isBetterOrEqualTo(criteriaResult)))) {
+            return baseBuild;
+        }
+        else {
+            return getMostRecentRunForCriteria(baseBuild.getPreviousBuild(), criteriaResult);
+        }
+    }
+
+    public static Run<?,?> getMostRecentRunForCriteriaWithSnapshot(AbstractBuild<?,?> baseBuild, String criteria) {
+        return getMostRecentRunForCriteriaWithSnapshot(baseBuild, getResultForCriteria(criteria));
+    }
+
+    public static Run<?,?> getMostRecentRunForCriteriaWithSnapshot(Run<?,?> project, String criteria) {
+        return getMostRecentRunForCriteriaWithSnapshot(project.getPreviousBuild(), getResultForCriteria(criteria));
+    }
+
+    public static Run<?,?> getMostRecentRunForCriteriaWithSnapshot(Run<?,?> baseBuild, Result criteriaResult) {
+        Run<?,?> criteriaBuild = getMostRecentRunForCriteria(baseBuild, criteriaResult);
+
+        if (criteriaBuild!=null) {
+            if (criteriaBuild.getAction(WorkspaceSnapshot.class)!=null) {
+                return criteriaBuild;
+            }
+            else {
+                return getMostRecentRunForCriteriaWithSnapshot(criteriaBuild.getPreviousBuild(), criteriaResult);
+            }
+        }
+        else {
+            return null;
+        }
+    }
+
     public static AbstractBuild<?,?> getMostRecentBuildForCriteria(AbstractProject<?,?> project, String criteria) {
         return getMostRecentBuildForCriteria(project.getLastBuild(), getResultForCriteria(criteria));
     }
@@ -67,7 +111,6 @@ public class CloneWorkspaceUtil {
             return getMostRecentBuildForCriteria(baseBuild.getPreviousBuild(), criteriaResult);
         }
     }
-
 
     public static AbstractBuild<?,?> getMostRecentBuildForCriteriaWithSnapshot(AbstractBuild<?,?> baseBuild, String criteria) {
         return getMostRecentBuildForCriteriaWithSnapshot(baseBuild, getResultForCriteria(criteria));
@@ -92,9 +135,8 @@ public class CloneWorkspaceUtil {
             return null;
         }
     }
-
-    public static String getFileNameForMethod(String method)
-    {
+    
+    public static String getFileNameForMethod(String method) {
         if ("ZIP".equals(method)) {
             return "workspace.zip";
         } else {

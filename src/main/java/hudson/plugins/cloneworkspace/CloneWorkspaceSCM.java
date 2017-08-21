@@ -58,6 +58,7 @@ import java.util.logging.Logger;
 import net.sf.json.JSONObject;
 import hudson.model.ParameterDefinition;
 import hudson.model.ParametersDefinitionProperty;
+import jenkins.model.Jenkins;
 
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -114,7 +115,7 @@ public class CloneWorkspaceSCM extends SCM {
      * @throws hudson.plugins.cloneworkspace.CloneWorkspaceSCM.ResolvedFailedException Exception
      */
     public Snapshot resolve(String parentJob) throws ResolvedFailedException {
-        Hudson h = Hudson.getInstance();
+        Jenkins h = Jenkins.getInstance();
         AbstractProject<?,?> job = h.getItemByFullName(parentJob, AbstractProject.class);
         if(job==null) {
             if(h.getItemByFullName(parentJob)==null) {
@@ -193,7 +194,7 @@ public class CloneWorkspaceSCM extends SCM {
     }
 
     private AbstractProject getContainingProject() {
-        for( AbstractProject p : Hudson.getInstance().getAllItems(AbstractProject.class) ) {
+        for( AbstractProject p : Jenkins.getInstance().getAllItems(AbstractProject.class) ) {
             SCM scm = p.getScm();
             if (scm != null && scm.getClass() == this.getClass() && this.equals(scm)) {
                 return p;
@@ -203,7 +204,7 @@ public class CloneWorkspaceSCM extends SCM {
     }
                 
     public List<String> getParameterList() {
-        ArrayList<String> list = new ArrayList<String>();
+        ArrayList<String> list = new ArrayList<>();
         ParametersDefinitionProperty prop = (ParametersDefinitionProperty) getContainingProject().getProperty(ParametersDefinitionProperty.class);
         if (prop != null) {
             for (ParameterDefinition param : prop.getParameterDefinitions())
@@ -286,7 +287,7 @@ public class CloneWorkspaceSCM extends SCM {
     protected PollingResult compareRemoteRevisionWith(AbstractProject<?,?> project, Launcher launcher, FilePath workspace, final TaskListener listener, SCMRevisionState _baseline) throws IOException, InterruptedException {
         final AbstractBuild lastBuild = project.getLastBuild();
         String parentJob = getParamParentJobName(lastBuild);
-        Hudson h = Hudson.getInstance();
+        Jenkins h = Jenkins.getInstance();
         AbstractProject<?,?> parentProject = h.getItemByFullName(parentJob, AbstractProject.class);
         if (parentProject==null) {
             // Disable this project if the parent project no longer exists or doesn't exist in the first place.
@@ -349,9 +350,9 @@ public class CloneWorkspaceSCM extends SCM {
         }
 
         public List<String> getEligibleParents() {
-            List<String> parentNames = new ArrayList<String>();
+            List<String> parentNames = new ArrayList<>();
             
-            for (AbstractProject p : Hudson.getInstance().getAllItems(AbstractProject.class)) {
+            for (AbstractProject p : Jenkins.getInstance().getAllItems(AbstractProject.class)) {
                 if (p.getPublishersList().get(CloneWorkspacePublisher.class) != null) {
                     if (p instanceof MatrixProject) {
                         MatrixProject mp = (MatrixProject) p;
