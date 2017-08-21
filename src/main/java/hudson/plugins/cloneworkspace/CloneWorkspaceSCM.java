@@ -28,26 +28,21 @@ import hudson.matrix.MatrixProject;
 import hudson.scm.PollingResult;
 import hudson.scm.SCM;
 import hudson.scm.ChangeLogParser;
-import hudson.scm.NullChangeLogParser;
 import hudson.scm.SCMDescriptor;
 import hudson.scm.SCMRevisionState;
-import static hudson.scm.PollingResult.BUILD_NOW;
-import static hudson.scm.PollingResult.NO_CHANGES;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
-import hudson.model.Descriptor;
 import hudson.model.TaskListener;
 import hudson.model.ParametersAction;
 import hudson.model.BuildListener;
 import hudson.model.Hudson;
 import hudson.model.Result;
-import hudson.model.PermalinkProjectAction.Permalink;
 import hudson.Launcher;
 import hudson.FilePath;
 import hudson.WorkspaceSnapshot;
-import hudson.PermalinkList;
 import hudson.Extension;
 import static hudson.Util.fixEmptyAndTrim;
+import org.apache.commons.collections.ListUtils;
 
 import java.io.IOException;
 import java.io.File;
@@ -55,21 +50,20 @@ import java.io.Serializable;
 import java.io.FileReader;
 import java.io.BufferedReader;
 import java.io.FileOutputStream;
-import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import net.sf.json.JSONObject;
+import hudson.model.ParameterDefinition;
+import hudson.model.ParametersDefinitionProperty;
+import jenkins.model.Jenkins;
 
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
- * {@link SCM} that inherits the workspace from another build through {@link WorkspaceSnapshot}
- * Derived from {@link WorkspaceSnapshotSCM}.
  *
  * @author Kohsuke Kawaguchi
  * @author Andrew Bayer
@@ -96,6 +90,7 @@ public class CloneWorkspaceSCM extends SCM {
     /**
      * Get the parent job name. Process it for parameters if needed.
      *
+     * @param build build
      * @return Parent job name.
      */
     public String getParamParentJobName(AbstractBuild<?, ?> build) {
@@ -117,9 +112,10 @@ public class CloneWorkspaceSCM extends SCM {
      *
      * @param parentJob Processed parent job name.
      * @return never null.
+     * @throws hudson.plugins.cloneworkspace.CloneWorkspaceSCM.ResolvedFailedException Exception
      */
     public Snapshot resolve(String parentJob) throws ResolvedFailedException {
-        Hudson h = Hudson.getInstance();
+        Jenkins h = Jenkins.getInstance();
         AbstractProject<?,?> job = h.getItemByFullName(parentJob, AbstractProject.class);
         if(job==null) {
             if(h.getItemByFullName(parentJob)==null) {
@@ -198,7 +194,7 @@ public class CloneWorkspaceSCM extends SCM {
     }
 
     private AbstractProject getContainingProject() {
-        for( AbstractProject p : Hudson.getInstance().getAllItems(AbstractProject.class) ) {
+        for( AbstractProject p : Jenkins.getInstance().getAllItems(AbstractProject.class) ) {
             SCM scm = p.getScm();
             if (scm != null && scm.getClass() == this.getClass() && this.equals(scm)) {
                 return p;
@@ -207,6 +203,18 @@ public class CloneWorkspaceSCM extends SCM {
         return null;
     }
                 
+    public List<String> getParameterList() {
+        ArrayList<String> list = new ArrayList<>();
+        ParametersDefinitionProperty prop = (ParametersDefinitionProperty) getContainingProject().getProperty(ParametersDefinitionProperty.class);
+        if (prop != null) {
+            for (ParameterDefinition param : prop.getParameterDefinitions())
+                list.add("$" + param.getName());
+        }
+        return list;
+    }
+     public List<String> getParentAndParamList() {
+         return ListUtils.union(getDescriptor().getEligibleParents(), getParameterList());
+     }
     @Override
     public DescriptorImpl getDescriptor() {
         return (DescriptorImpl)super.getDescriptor();
@@ -279,7 +287,7 @@ public class CloneWorkspaceSCM extends SCM {
     protected PollingResult compareRemoteRevisionWith(AbstractProject<?,?> project, Launcher launcher, FilePath workspace, final TaskListener listener, SCMRevisionState _baseline) throws IOException, InterruptedException {
         final AbstractBuild lastBuild = project.getLastBuild();
         String parentJob = getParamParentJobName(lastBuild);
-        Hudson h = Hudson.getInstance();
+        Jenkins h = Jenkins.getInstance();
         AbstractProject<?,?> parentProject = h.getItemByFullName(parentJob, AbstractProject.class);
         if (parentProject==null) {
             // Disable this project if the parent project no longer exists or doesn't exist in the first place.
@@ -342,9 +350,9 @@ public class CloneWorkspaceSCM extends SCM {
         }
 
         public List<String> getEligibleParents() {
-            List<String> parentNames = new ArrayList<String>();
+            List<String> parentNames = new ArrayList<>();
             
-            for (AbstractProject p : Hudson.getInstance().getAllItems(AbstractProject.class)) {
+            for (AbstractProject p : Jenkins.getInstance().getAllItems(AbstractProject.class)) {
                 if (p.getPublishersList().get(CloneWorkspacePublisher.class) != null) {
                     if (p instanceof MatrixProject) {
                         MatrixProject mp = (MatrixProject) p;
