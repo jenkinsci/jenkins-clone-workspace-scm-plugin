@@ -74,8 +74,7 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
- * {@link SCM} that inherits the workspace from another build through {@link WorkspaceSnapshot}
- * Derived from {@link WorkspaceSnapshotSCM}.
+ * {@link SCM} that inherits the workspace from another build through {@link WorkspaceSnapshot}.
  *
  * @author Kohsuke Kawaguchi
  * @author Andrew Bayer
