@@ -22,6 +22,4 @@ The plugin provides a "publisher" that freestyle job can use to clone the worksp
 
 ## Version history
 
-See [GitHub releases]() for recent releases.
-
-Older releases are described in the [changelog](CHANGELOG.md].
+See [GitHub releases](https://github.com/jenkinsci/jenkins-clone-workspace-scm-plugin/releases) for recent releases.
