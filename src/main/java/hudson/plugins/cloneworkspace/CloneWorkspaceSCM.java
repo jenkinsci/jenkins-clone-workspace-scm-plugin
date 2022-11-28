@@ -131,7 +131,8 @@ public class CloneWorkspaceSCM extends SCM {
         if(job==null) {
             if(h.getItemByFullName(parentJob)==null) {
                 AbstractProject nearest = AbstractProject.findNearest(parentJob);
-                throw new ResolvedFailedException(Messages.CloneWorkspaceSCM_NoSuchJob(parentJob,nearest.getFullName()));
+                String nearestJobName = nearest != null ? nearest.getFullName() : "nearest job not found";
+                throw new ResolvedFailedException(Messages.CloneWorkspaceSCM_NoSuchJob(parentJob, nearestJobName));
             } else
                 throw new ResolvedFailedException(Messages.CloneWorkspaceSCM_IncorrectJobType(parentJob));
         }
