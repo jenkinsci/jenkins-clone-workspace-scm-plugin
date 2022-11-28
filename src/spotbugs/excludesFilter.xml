@@ -1,0 +1,20 @@
+<FindBugsFilter>
+  <!--
+    Exclusions in this section have been triaged and determined to be false positives.
+  -->
+
+  <!-- Technical debt here.  Needs evaluation and either repair or continued suppression -->
+  <Match>
+    <Bug pattern="SIC_INNER_SHOULD_BE_STATIC"/>
+    <Or>
+      <Class name="hudson.plugins.cloneworkspace.CloneWorkspaceSCM$ResolvedFailedException"/>
+      <Class name="hudson.plugins.cloneworkspace.CloneWorkspaceSCM$CloneWorkspaceSCMRevisionState"/>
+    </Or>
+  </Match>
+
+  <Match>
+    <Bug pattern="SE_BAD_FIELD_INNER_CLASS"/>
+    <Class name="hudson.plugins.cloneworkspace.CloneWorkspaceSCM$CloneWorkspaceSCMRevisionState"/>
+  </Match>
+
+</FindBugsFilter>
