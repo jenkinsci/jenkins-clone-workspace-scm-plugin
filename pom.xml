@@ -33,7 +33,7 @@ THE SOFTWARE.
   <artifactId>clone-workspace-scm</artifactId>
   <packaging>hpi</packaging>
   <name>Jenkins Clone Workspace SCM Plug-in</name>
-  <version>${revision}${changelist}</version>
+  <version>${changelist}</version>
   <url>https://github.com/${gitHubRepo}</url>
 
   <licenses>
@@ -52,8 +52,7 @@ THE SOFTWARE.
   </developers>
 
   <properties>
-    <revision>0.7</revision>
-    <changelist>-SNAPSHOT</changelist>
+    <changelist>999999-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/jenkins-clone-workspace-scm-plugin</gitHubRepo>
     <jenkins.version>2.346.3</jenkins.version>
   </properties>
