@@ -218,20 +218,16 @@ public class CloneWorkspacePublisher extends Recorder {
     public WorkspaceSnapshot snapshot(AbstractBuild<?,?> build, FilePath ws, DirScanner scanner, TaskListener listener, String archiveMethod) throws IOException, InterruptedException {
         File wss = new File(build.getRootDir(), CloneWorkspaceUtil.getFileNameForMethod(archiveMethod));
         if (archiveMethod.equals("ZIP")) {
-            OutputStream os = new BufferedOutputStream(new FileOutputStream(wss));
-            try {
+            try (FileOutputStream f = new FileOutputStream(wss);
+                 OutputStream os = new BufferedOutputStream(f)) {
                 ws.zip(os, scanner);
-            } finally {
-                os.close();
             }
 
             return new WorkspaceSnapshotZip();
         } else {
-            OutputStream os = new BufferedOutputStream(FilePath.TarCompression.GZIP.compress(new FileOutputStream(wss)));
-            try {
+            try (FileOutputStream f = new FileOutputStream(wss);
+                 OutputStream os = new BufferedOutputStream(FilePath.TarCompression.GZIP.compress(f))) {
                 ws.tar(os, scanner);
-            } finally {
-                os.close();
             }
 
             return new WorkspaceSnapshotTar();
