@@ -158,7 +158,8 @@ public class CloneWorkspacePublisher extends Recorder {
             }
         }
 
-        if (build.getResult().isBetterOrEqualTo(criteriaResult)) {
+        Result buildResult = build.getResult();
+        if (buildResult != null && buildResult.isBetterOrEqualTo(criteriaResult)) {
             listener.getLogger().println(Messages.CloneWorkspacePublisher_ArchivingWorkspace());
             FilePath ws = build.getWorkspace();
             if (ws==null) { // #3330: slave down?

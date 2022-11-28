@@ -58,9 +58,13 @@ public class CloneWorkspaceUtil {
     }
 
     public static AbstractBuild<?,?> getMostRecentBuildForCriteria(AbstractBuild<?,?> baseBuild, Result criteriaResult) {
-        if ((baseBuild == null)
-            || ((!baseBuild.isBuilding()) && (baseBuild.getResult() != null)
-                && (baseBuild.getResult().isBetterOrEqualTo(criteriaResult)))) {
+        if (baseBuild == null) {
+            return baseBuild;
+        }
+        Result baseBuildResult = baseBuild.getResult();
+        if (!baseBuild.isBuilding()
+            && baseBuildResult != null
+            && baseBuildResult.isBetterOrEqualTo(criteriaResult)) {
             return baseBuild;
         }
         else {
