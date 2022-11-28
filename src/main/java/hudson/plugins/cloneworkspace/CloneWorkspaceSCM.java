@@ -54,13 +54,19 @@ import java.io.File;
 import java.io.Serializable;
 import java.io.FileReader;
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 import net.sf.json.JSONObject;
 
@@ -118,13 +124,15 @@ public class CloneWorkspaceSCM extends SCM {
      * @param parentJob Processed parent job name.
      * @return never null.
      */
+    @NonNull
     public Snapshot resolve(String parentJob) throws ResolvedFailedException {
         Hudson h = Hudson.getInstance();
         AbstractProject<?,?> job = h.getItemByFullName(parentJob, AbstractProject.class);
         if(job==null) {
             if(h.getItemByFullName(parentJob)==null) {
                 AbstractProject nearest = AbstractProject.findNearest(parentJob);
-                throw new ResolvedFailedException(Messages.CloneWorkspaceSCM_NoSuchJob(parentJob,nearest.getFullName()));
+                String nearestJobName = nearest != null ? nearest.getFullName() : "nearest job not found";
+                throw new ResolvedFailedException(Messages.CloneWorkspaceSCM_NoSuchJob(parentJob, nearestJobName));
             } else
                 throw new ResolvedFailedException(Messages.CloneWorkspaceSCM_IncorrectJobType(parentJob));
         }
@@ -152,11 +160,8 @@ public class CloneWorkspaceSCM extends SCM {
             snapshot.restoreTo(workspace,listener);
 
             // write out the parent build number file
-            PrintWriter w = new PrintWriter(new FileOutputStream(getParentBuildFile(build)));
-            try {
+            try (PrintWriter w = new PrintWriter(new OutputStreamWriter(new FileOutputStream(getParentBuildFile(build)), StandardCharsets.UTF_8), true)) {
                 w.println(snapshot.getParent().getNumber());
-            } finally {
-                w.close();
             }
             
             return calcChangeLog(snapshot.getParent(), changelogFile, listener);
@@ -249,8 +254,7 @@ public class CloneWorkspaceSCM extends SCM {
                 // nothing to compare against
                 return parentBuildNumber;
 
-            BufferedReader br = new BufferedReader(new FileReader(file));
-            try {
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
                 String line;
                 while((line=br.readLine())!=null) {
                     try {
@@ -259,8 +263,6 @@ public class CloneWorkspaceSCM extends SCM {
                         // perhaps a corrupted line. ignore
                     }
                 }
-            } finally {
-                br.close();
             }
         }
 
@@ -298,26 +300,19 @@ public class CloneWorkspaceSCM extends SCM {
             return new PollingResult(baseline, baseline, PollingResult.Change.NONE);
             //            return NO_CHANGES;
         }
-        if (s==null) {
-            listener.getLogger().println("Snapshot failed to resolve for unknown reasons.");
-            return new PollingResult(baseline, baseline, PollingResult.Change.NONE);
-            //            return NO_CHANGES;
+        if (s.getParent().getNumber() > baseline.parentBuildNumber) {
+            listener.getLogger().println("Build #" + s.getParent().getNumber() + " of project " + parentJob
+                                         + " is newer than build #" + baseline.parentBuildNumber + ", so a new build of "
+                                         + project + " will be run.");
+            return new PollingResult(baseline, new CloneWorkspaceSCMRevisionState(s.getParent().getNumber()), PollingResult.Change.SIGNIFICANT);
+        //                return BUILD_NOW;
         }
         else {
-            if (s.getParent().getNumber() > baseline.parentBuildNumber) {
-                listener.getLogger().println("Build #" + s.getParent().getNumber() + " of project " + parentJob
-                                             + " is newer than build #" + baseline.parentBuildNumber + ", so a new build of "
-                                             + project + " will be run.");
-                return new PollingResult(baseline, new CloneWorkspaceSCMRevisionState(s.getParent().getNumber()), PollingResult.Change.SIGNIFICANT);
-            //                return BUILD_NOW;
-            }
-            else {
-                listener.getLogger().println("Build #" + s.getParent().getNumber() + " of project " + parentJob
-                                             + " is NOT newer than build #" + baseline.parentBuildNumber + ", so no new build of "
-                                             + project + " will be run.");
-                return new PollingResult(baseline, baseline, PollingResult.Change.NONE);
-            //                return NO_CHANGES;
-            }
+            listener.getLogger().println("Build #" + s.getParent().getNumber() + " of project " + parentJob
+                                         + " is NOT newer than build #" + baseline.parentBuildNumber + ", so no new build of "
+                                         + project + " will be run.");
+            return new PollingResult(baseline, baseline, PollingResult.Change.NONE);
+        //                return NO_CHANGES;
         }
     }
 

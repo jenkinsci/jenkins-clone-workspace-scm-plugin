@@ -1,7 +1,7 @@
 <!--
 The MIT License
 
-Copyright (c) 2004-2010, Sun Microsystems, Inc., Kohsuke Kawaguchi, Andrew Bayer 
+Copyright (c) 2004-2010, Sun Microsystems, Inc., Kohsuke Kawaguchi, Andrew Bayer
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,8 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>1.463</version>
+    <version>4.51</version>
+    <relativePath></relativePath>
   </parent>
 
   <artifactId>clone-workspace-scm</artifactId>
@@ -35,7 +36,7 @@ THE SOFTWARE.
   <version>0.7-SNAPSHOT</version>
   <url>http://wiki.jenkins-ci.org/display/JENKINS/Clone+Workspace+SCM+Plugin</url>
   <description>Plugin to archive workspaces from one project and reuse those as SCM sources for other projects.</description>
-  
+
   <licenses>
     <license>
       <name>MIT license</name>
@@ -43,43 +44,35 @@ THE SOFTWARE.
     </license>
   </licenses>
 
-  
-  <build>
-    <pluginManagement>
-      <plugins>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-enforcer-plugin</artifactId>
-          <version>1.0-beta-1</version>
-        </plugin>
-      </plugins>
-    </pluginManagement>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-release-plugin</artifactId>
-        <configuration>
-          <goals>deploy</goals>
-        </configuration>
-      </plugin>
-      <plugin>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <configuration>
-          <source>1.6</source>
-          <target>1.6</target>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
-
   <developers>
     <developer>
-      <id>abayer</id>
-      <name>Andrew Bayer</name>
-      <email>andrew.bayer@gmail.com</email>
-      <timezone>-8</timezone>
+      <id>markewaite</id>
+      <name>Mark Waite</name>
+      <email>mark.earl.waite@gmail.com</email>
     </developer>
   </developers>
+
+  <properties>
+    <jenkins.version>2.346.3</jenkins.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>io.jenkins.tools.bom</groupId>
+        <artifactId>bom-2.346.x</artifactId>
+        <version>1723.vcb_9fee52c9fc</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+  <dependencies>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>matrix-project</artifactId>
+    </dependency>
+  </dependencies>
 
   <repositories>
     <repository>
@@ -87,26 +80,17 @@ THE SOFTWARE.
       <url>https://repo.jenkins-ci.org/public/</url>
     </repository>
   </repositories>
-
-  <distributionManagement>
-    <repository>
-      <id>maven.jenkins-ci.org</id>
-      <url>http://maven.jenkins-ci.org:8081/content/repositories/releases/</url>
-    </repository>
-  </distributionManagement>
+  <pluginRepositories>
+    <pluginRepository>
+      <id>repo.jenkins-ci.org</id>
+      <url>https://repo.jenkins-ci.org/public/</url>
+    </pluginRepository>
+  </pluginRepositories>
 
   <scm>
-    <connection>scm:git:git://github.com/jenkinsci/jenkins-clone-workspace-scm-plugin.git</connection>
+    <connection>scm:git:https://github.com/jenkinsci/jenkins-clone-workspace-scm-plugin.git</connection>
     <developerConnection>scm:git:git@github.com:jenkinsci/jenkins-clone-workspace-scm-plugin.git</developerConnection>
     <url>http://github.com/jenkinsci/jenkins-clone-workspace-scm-plugin</url>
   </scm>
 
-
-    <pluginRepositories>
-        <pluginRepository>
-            <id>repo.jenkins-ci.org</id>
-            <url>https://repo.jenkins-ci.org/public/</url>
-        </pluginRepository>
-    </pluginRepositories>
-</project>  
-
+</project>
