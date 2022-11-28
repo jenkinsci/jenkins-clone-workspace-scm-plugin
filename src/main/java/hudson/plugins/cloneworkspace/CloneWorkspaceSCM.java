@@ -300,26 +300,19 @@ public class CloneWorkspaceSCM extends SCM {
             return new PollingResult(baseline, baseline, PollingResult.Change.NONE);
             //            return NO_CHANGES;
         }
-        if (s==null) {
-            listener.getLogger().println("Snapshot failed to resolve for unknown reasons.");
-            return new PollingResult(baseline, baseline, PollingResult.Change.NONE);
-            //            return NO_CHANGES;
+        if (s.getParent().getNumber() > baseline.parentBuildNumber) {
+            listener.getLogger().println("Build #" + s.getParent().getNumber() + " of project " + parentJob
+                                         + " is newer than build #" + baseline.parentBuildNumber + ", so a new build of "
+                                         + project + " will be run.");
+            return new PollingResult(baseline, new CloneWorkspaceSCMRevisionState(s.getParent().getNumber()), PollingResult.Change.SIGNIFICANT);
+        //                return BUILD_NOW;
         }
         else {
-            if (s.getParent().getNumber() > baseline.parentBuildNumber) {
-                listener.getLogger().println("Build #" + s.getParent().getNumber() + " of project " + parentJob
-                                             + " is newer than build #" + baseline.parentBuildNumber + ", so a new build of "
-                                             + project + " will be run.");
-                return new PollingResult(baseline, new CloneWorkspaceSCMRevisionState(s.getParent().getNumber()), PollingResult.Change.SIGNIFICANT);
-            //                return BUILD_NOW;
-            }
-            else {
-                listener.getLogger().println("Build #" + s.getParent().getNumber() + " of project " + parentJob
-                                             + " is NOT newer than build #" + baseline.parentBuildNumber + ", so no new build of "
-                                             + project + " will be run.");
-                return new PollingResult(baseline, baseline, PollingResult.Change.NONE);
-            //                return NO_CHANGES;
-            }
+            listener.getLogger().println("Build #" + s.getParent().getNumber() + " of project " + parentJob
+                                         + " is NOT newer than build #" + baseline.parentBuildNumber + ", so no new build of "
+                                         + project + " will be run.");
+            return new PollingResult(baseline, baseline, PollingResult.Change.NONE);
+        //                return NO_CHANGES;
         }
     }
 
