@@ -44,6 +44,7 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import net.sf.json.JSONObject;
 
@@ -261,6 +262,7 @@ public class CloneWorkspacePublisher extends Recorder {
         /**
          * Performs on-the-fly validation on the file mask wildcard.
          */
+        @RequirePOST
         public FormValidation doCheckWorkspaceGlob(@AncestorInPath AbstractProject project, @QueryParameter String value) throws IOException {
             return FilePath.validateFileMask(project.getSomeWorkspace(),value);
         }
