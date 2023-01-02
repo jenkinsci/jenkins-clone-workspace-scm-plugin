@@ -54,7 +54,8 @@ THE SOFTWARE.
   <properties>
     <changelist>999999-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/jenkins-clone-workspace-scm-plugin</gitHubRepo>
-    <jenkins.version>2.346.3</jenkins.version>
+<!--    <jenkins.version>2.346.3</jenkins.version>-->
+    <jenkins.version>2.361.1</jenkins.version>
   </properties>
 
   <dependencyManagement>
