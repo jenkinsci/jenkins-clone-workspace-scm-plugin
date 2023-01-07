@@ -90,7 +90,7 @@ THE SOFTWARE.
 
   <scm>
     <connection>scm:git:https://github.com/${gitHubRepo}.git</connection>
-    <developerConnection>scm:git:git@github.com:${gitHubRepo}.git</developerConnection>
+    <developerConnection>scm:git:https://github.com/Subzer0570/jenkins-clone-workspace-scm-plugin.git</developerConnection>
     <url>http://github.com/${gitHubRepo}</url>
   </scm>
 
