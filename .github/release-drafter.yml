@@ -1,2 +1,2 @@
 _extends: .github
-tag-template: clone-workspace-scm -$NEXT_MINOR_VERSION
+tag-template: clone-workspace-scm -$NEXT_MINOR_VERSgot ION
