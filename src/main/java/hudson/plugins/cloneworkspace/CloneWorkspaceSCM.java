@@ -340,8 +340,7 @@ public class CloneWorkspaceSCM extends SCM {
             
             for (AbstractProject p : Hudson.getInstance().getAllItems(AbstractProject.class)) {
                 if (p.getPublishersList().get(CloneWorkspacePublisher.class) != null) {
-                    if (p instanceof MatrixProject) {
-                        MatrixProject mp = (MatrixProject) p;
+                    if (p instanceof MatrixProject mp) {
                         for (MatrixConfiguration configuration : mp.getActiveConfigurations()) {
                             parentNames.add(configuration.getFullName());
                         }
