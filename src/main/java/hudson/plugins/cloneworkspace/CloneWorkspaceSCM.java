@@ -70,7 +70,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 
 import net.sf.json.JSONObject;
 
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
@@ -331,7 +331,7 @@ public class CloneWorkspaceSCM extends SCM {
 
         
         @Override
-        public SCM newInstance(StaplerRequest req, JSONObject formData) throws FormException {
+        public SCM newInstance(StaplerRequest2 req, JSONObject formData) throws FormException {
             return req.bindJSON(CloneWorkspaceSCM.class, formData);
         }
 

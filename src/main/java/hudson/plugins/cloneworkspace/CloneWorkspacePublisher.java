@@ -40,7 +40,7 @@ import hudson.tasks.Publisher;
 import hudson.tasks.Recorder;
 import hudson.util.DirScanner;
 import hudson.util.FormValidation;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.QueryParameter;
@@ -268,7 +268,7 @@ public class CloneWorkspacePublisher extends Recorder {
         }
 
         @Override
-        public CloneWorkspacePublisher newInstance(StaplerRequest req, JSONObject formData) throws FormException {
+        public CloneWorkspacePublisher newInstance(StaplerRequest2 req, JSONObject formData) throws FormException {
             return req.bindJSON(CloneWorkspacePublisher.class,formData);
         }
 
